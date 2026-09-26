@@ -49,8 +49,8 @@ const SideBar = () => {
             <div>
               <Toolbar
                 disableGutters
-                  sx={{
-                    px: open ? 3 : 0,
+                sx={{
+                  px: open ? 3 : 0,
                   justifyContent: open ? 'space-between' : 'center',
                 }} >
                   {

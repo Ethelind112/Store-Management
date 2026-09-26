@@ -9,6 +9,7 @@ import {
 import { HashRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import SideBar from './components/SideBar';
 import TopSearchBar from './components/TopSearchBar';
+import ProductPage from './pages/product';
 
 const theme = createTheme({
   palette: {
@@ -32,23 +33,6 @@ const Home = () => (
   </Box>
 );
 
-const Dashboard = () => (
-    <>
-        <Box
-            component="main"
-            sx={{ minWidth: 0, overflow: 'auto' }}
-        >
-            <TopSearchBar />
-            <Box sx={{ p: 2 }}>
-                <Typography variant="h4" gutterBottom>Dashboard</Typography>
-                <Typography variant="body1">
-                    Here is your dashboard overview. Resize the window to see the sidebar collapse into a mobile-friendly drawer.
-                </Typography>
-            </Box>
-        </Box>
-    </>
-);
-
 // --- Main Layout Component ---
 function ResponsiveLayout() {
 
@@ -63,7 +47,7 @@ function ResponsiveLayout() {
             <SideBar />
         </Box>
 
-        <Box sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 0', minWidth: 0, overflow: 'hidden' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 0', minWidth: 0, overflowY: 'auto' }}>
             <Outlet />
         </Box>
     </Box>
@@ -78,8 +62,7 @@ export default function App() {
         <Routes>
           <Route element={<ResponsiveLayout />}>
             <Route path="/" element={<Home />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            
+            <Route path="/product" element={<ProductPage />} />
           </Route>
         </Routes>
       </Router>
