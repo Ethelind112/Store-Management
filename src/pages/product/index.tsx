@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
+import { FilterMenu } from "./constant";
 
 // ---- Sample data (replace with your API data) ----
 const CATEGORIES = ["All", "Electronics", "Clothing", "Home", "Books", "Toys"];
@@ -243,33 +244,16 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
                         open={Boolean(filterMenuAnchor)}
                         onClose={() => setFilterMenuAnchor(null)}
                     >
-                        <MenuItem selected={sortBy === 'name-asc'} onClick={() => {
-                            setSortBy('name-asc');
-                            setPage(1);
-                            setFilterMenuAnchor(null);
-                        }}>Name (A - Z)</MenuItem>
-                        <MenuItem selected={sortBy === 'name-desc'} onClick={() => {
-                            setSortBy('name-desc');
-                            setPage(1);
-                            setFilterMenuAnchor(null);
-                        }}>Name (Z - A)</MenuItem>
-                        <MenuItem selected={sortBy === 'price-asc'} onClick={() => {
-                            setSortBy('price-asc');
-                            setPage(1);
-                            setFilterMenuAnchor(null);
-                        }}>Price (Low to High)</MenuItem>
-                        <MenuItem selected={sortBy === 'price-desc'} onClick={() => {
-                            setSortBy('price-desc');
-                            setPage(1);
-                            setFilterMenuAnchor(null);
-                        }}>Price (High to Low)</MenuItem>
+                        {FilterMenu.map((menu) => (
+                            <MenuItem selected={sortBy === menu.key} onClick={() => {
+                                setSortBy(menu.key);
+                                setPage(1);
+                                setFilterMenuAnchor(null);
+                            }}>{menu.label}</MenuItem>
+                        ))}
                     </Menu>
                 </Box>
             </Box>
-
-
-
-
 
             <Grid container spacing={2} sx={{ alignItems: 'center' }}>
               
