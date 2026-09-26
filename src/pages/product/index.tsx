@@ -12,15 +12,13 @@ import {
   CardContent,
   Grid,
   Pagination,
-  MenuItem,
   Divider,
-  Button,
-  Menu,
   IconButton,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
-import { FilterMenu } from "./constant";
+import FilterMenu from "../../components/FilterMenu";
+import { FilterMenu as filterOptions } from "./constant";
 
 // ---- Sample data (replace with your API data) ----
 const CATEGORIES = ["All", "Electronics", "Clothing", "Home", "Books", "Toys"];
@@ -138,11 +136,17 @@ function truncate(text, max = 100) {
 export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
-  const [sortBy, setSortBy] = useState("name-asc");
+  const [sortBy, setSortBy] = useState("");
+  const [draftSortBy, setDraftSortBy] = useState("");
+  
   const [minPrice, setMinPrice] = useState("");
   const [maxPrice, setMaxPrice] = useState("");
+  const [draftMinPrice, setDraftMinPrice] = useState("");
+  const [draftMaxPrice, setDraftMaxPrice] = useState("");
+  
   const [page, setPage] = useState(1);
   const [filterMenuAnchor, setFilterMenuAnchor] = useState<HTMLElement | null>(null);
+  const hasActiveFilters = category !== "All" || minPrice !== "" || maxPrice !== "" || sortBy !== "";
 
   const filtered = useMemo(() => {
     let result = products.filter((p) => {
@@ -180,23 +184,38 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
     setPage(1);
   };
 
+  const handleApplyFilters = () => {
+    setSortBy(draftSortBy);
+    setMinPrice(draftMinPrice);
+    setMaxPrice(draftMaxPrice);
+    setPage(1);
+    setFilterMenuAnchor(null);
+  };
+
+  const handleClearFilters = () => {
+    setCategory("All");
+    setSortBy("");
+    setDraftSortBy("");
+    setMinPrice("");
+    setMaxPrice("");
+    setDraftMinPrice("");
+    setDraftMaxPrice("");
+    setPage(1);
+    setFilterMenuAnchor(null);
+  };
+
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
     setPage(1);
   };
 
-  const handlePriceChange = (setter) => (e) => {
-    setter(e.target.value);
-    setPage(1);
-  };
-
   return (
-    <Container sx={{ paddingY: 2.5 }} >
+    <Container disableGutters sx={{ py: 2.5, px: 5 }} >
         
         <Box sx={{ display: "grid", gap: 2}}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <Box>
-                    <Typography variant="h6" sx={{ fontWeight: 'bold', lineHeight: 1 }} >
+                    <Typography variant="h5" sx={{ fontWeight: 'bold', lineHeight: 1 }} >
                         Produk
                     </Typography>
 
@@ -217,6 +236,9 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
                             '& .MuiOutlinedInput-root': {
                                 borderRadius: '20px',
                                 background: 'white',
+                                '& fieldset': { borderColor: 'transparent' },
+                                '&:hover fieldset': { borderColor: 'transparent' },
+                                '&.Mui-focused fieldset': { borderColor: 'primary.main' },
                             }
                         }}
                         slotProps={{
@@ -231,73 +253,34 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
                     />
 
                     <IconButton 
+                        color={hasActiveFilters ? "primary" : "default"}
                         sx={{ 
-                            background: 'white'
+                            backgroundColor: hasActiveFilters ? 'primary.main' : 'white',
+                            color: hasActiveFilters ? 'primary.contrastText' : 'inherit',
+                            '&:hover': { backgroundColor: hasActiveFilters ? 'primary.dark' : 'action.hover' },
                         }}
                         onClick={(event) => setFilterMenuAnchor(event.currentTarget)}
                     >
                         <FilterListIcon />
                     </IconButton>
                     
-                    <Menu
+                    <FilterMenu
+                        options={filterOptions}
                         anchorEl={filterMenuAnchor}
-                        open={Boolean(filterMenuAnchor)}
                         onClose={() => setFilterMenuAnchor(null)}
-                    >
-                        {FilterMenu.map((menu) => (
-                            <MenuItem selected={sortBy === menu.key} onClick={() => {
-                                setSortBy(menu.key);
-                                setPage(1);
-                                setFilterMenuAnchor(null);
-                            }}>{menu.label}</MenuItem>
-                        ))}
-                    </Menu>
+                        hasActiveFilters={hasActiveFilters}
+                        draftSortBy={draftSortBy}
+                        setDraftSortBy={setDraftSortBy}
+                        draftMinPrice={draftMinPrice}
+                        setDraftMinPrice={setDraftMinPrice}
+                        draftMaxPrice={draftMaxPrice}
+                        setDraftMaxPrice={setDraftMaxPrice}
+                        onApply={handleApplyFilters}
+                        onClear={handleClearFilters}
+                    />
                 </Box>
             </Box>
 
-            <Grid container spacing={2} sx={{ alignItems: 'center' }}>
-              
-                <Grid size={{ xs: 6, sm: 4, md: 3 }}>
-                    <TextField
-                    fullWidth
-                    size="small"
-                    type="number"
-                    label="Min price"
-                    value={minPrice}
-                    onChange={handlePriceChange(setMinPrice)}
-                    slotProps={{
-                            input: {
-                                startAdornment: (
-                                    <InputAdornment position="start">$</InputAdornment>
-                                ),
-                            },
-                        }}
-                    />
-                </Grid>
-                <Grid size={{ xs: 6, sm: 4, md: 3 }}>
-                    <TextField
-                        fullWidth
-                        size="small"
-                        type="number"
-                        label="Max price"
-                        value={maxPrice}
-                        onChange={handlePriceChange(setMaxPrice)}
-                        slotProps={{
-                            input: {
-                                startAdornment: (
-                                    <InputAdornment position="start">$</InputAdornment>
-                                ),
-                            },
-                        }}
-                    />
-                </Grid>
-                
-            </Grid>
-
-
-
-
-        
             <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap", rowGap: 1, overflowX: "auto" }}>
                 {CATEGORIES.map((cat) => (
                 <Chip
@@ -310,15 +293,6 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
                 />
                 ))}
             </Stack>
-
-
-
-
-
-
-
-
-            
         </Box>
 
       
@@ -370,7 +344,6 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
         )}
       </Grid>
 
-      {/* Pagination */}
       {filtered.length > 0 && (
         <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
           <Pagination
