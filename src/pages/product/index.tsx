@@ -12,15 +12,15 @@ import {
   CardContent,
   Grid,
   Pagination,
-  Divider,
   IconButton,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import FilterListIcon from "@mui/icons-material/FilterList";
 import FilterMenu from "../../components/FilterMenu";
 import { FilterMenu as filterOptions } from "./constant";
+import CategoryChip from "../../components/CategoryChips";
 
-const CATEGORIES = ["All", "Electronics", "Clothing", "Home", "Books", "Toys"];
+
 
 const SAMPLE_PRODUCTS = [
   {
@@ -281,74 +281,56 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
             </Box>
         </Box>
 
-      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, overflowX: "auto" }}>
-            {CATEGORIES.map((cat) => (
-            <Chip
-                key={cat}
-                label={cat}
-                color={category === cat ? "primary" : "default"}
-                variant={category === cat ? "filled" : "outlined"}
-                onClick={() => handleCategoryClick(cat)}
-                clickable
-            />
-            ))}
-        </Stack>
+        <CategoryChip handleCategoryClick={handleCategoryClick} category={category} />
 
-      <Grid size={{ xs: 12, md: 3 }}>
-            <Typography variant="body2" color="text.secondary">
-            {filtered.length} result{filtered.length !== 1 ? "s" : ""} found
-            </Typography>
+        <Grid container spacing={3}>
+            {paginated.map((product) => (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={product.id}>
+                <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+                <CardMedia
+                    component="img"
+                    height="180"
+                    image={product.image}
+                    alt={product.name}
+                    sx={{ objectFit: "cover" }}
+                />
+                <CardContent sx={{ flexGrow: 1 }}>
+                    <Stack direction="row" sx={{ mb: 1, justifyContent: "space-between", alignItems:"flex-start" }}>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
+                        {product.name}
+                    </Typography>
+                    <Chip label={product.category} size="small" color="secondary" variant="outlined" />
+                    </Stack>
+                    <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
+                    ${product.price.toFixed(2)}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                    {truncate(product.description, 100)}
+                    </Typography>
+                </CardContent>
+                </Card>
+            </Grid>
+            ))}
+
+            {paginated.length === 0 && (
+            <Grid size={{ xs: 12 }}>
+                <Typography variant="body1" color="text.secondary" align="center" sx={{ py: 6 }}>
+                No products match your filters.
+                </Typography>
+            </Grid>
+            )}
         </Grid>
 
-      {/* Product grid */}
-      <Grid container spacing={3}>
-        {paginated.map((product) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={product.id}>
-            <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-              <CardMedia
-                component="img"
-                height="180"
-                image={product.image}
-                alt={product.name}
-                sx={{ objectFit: "cover" }}
-              />
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Stack direction="row" sx={{ mb: 1, justifyContent: "space-between", alignItems:"flex-start" }}>
-                  <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                    {product.name}
-                  </Typography>
-                  <Chip label={product.category} size="small" color="secondary" variant="outlined" />
-                </Stack>
-                <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
-                  ${product.price.toFixed(2)}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {truncate(product.description, 100)}
-                </Typography>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-
-        {paginated.length === 0 && (
-          <Grid size={{ xs: 12 }}>
-            <Typography variant="body1" color="text.secondary" align="center" sx={{ py: 6 }}>
-              No products match your filters.
-            </Typography>
-          </Grid>
+        {filtered.length > 0 && (
+            <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
+            <Pagination
+                count={pageCount}
+                page={page}
+                onChange={(e, value) => setPage(value)}
+                color="primary"
+            />
+            </Box>
         )}
-      </Grid>
-
-      {filtered.length > 0 && (
-        <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
-          <Pagination
-            count={pageCount}
-            page={page}
-            onChange={(e, value) => setPage(value)}
-            color="primary"
-          />
-        </Box>
-      )}
-    </Container>
-  );
+        </Container>
+    );
 }
