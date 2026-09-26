@@ -20,7 +20,6 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import FilterMenu from "../../components/FilterMenu";
 import { FilterMenu as filterOptions } from "./constant";
 
-// ---- Sample data (replace with your API data) ----
 const CATEGORIES = ["All", "Electronics", "Clothing", "Home", "Books", "Toys"];
 
 const SAMPLE_PRODUCTS = [
@@ -146,7 +145,7 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
   
   const [page, setPage] = useState(1);
   const [filterMenuAnchor, setFilterMenuAnchor] = useState<HTMLElement | null>(null);
-  const hasActiveFilters = category !== "All" || minPrice !== "" || maxPrice !== "" || sortBy !== "";
+  const hasActiveFilters = minPrice !== "" || maxPrice !== "" || sortBy !== "";
 
   const filtered = useMemo(() => {
     let result = products.filter((p) => {
@@ -210,7 +209,7 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
   };
 
   return (
-    <Container disableGutters sx={{ py: 2.5, px: 5 }} >
+    <Container disableGutters sx={{ display: "grid", gap: 2, py: 2.5, px: 5 }} >
         
         <Box sx={{ display: "grid", gap: 2}}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -280,24 +279,20 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
                     />
                 </Box>
             </Box>
-
-            <Stack direction="row" spacing={1} sx={{ mb: 2, flexWrap: "wrap", rowGap: 1, overflowX: "auto" }}>
-                {CATEGORIES.map((cat) => (
-                <Chip
-                    key={cat}
-                    label={cat}
-                    color={category === cat ? "primary" : "default"}
-                    variant={category === cat ? "filled" : "outlined"}
-                    onClick={() => handleCategoryClick(cat)}
-                    clickable
-                />
-                ))}
-            </Stack>
         </Box>
 
-      
-
-      <Divider sx={{ mb: 3 }} />
+      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, overflowX: "auto" }}>
+            {CATEGORIES.map((cat) => (
+            <Chip
+                key={cat}
+                label={cat}
+                color={category === cat ? "primary" : "default"}
+                variant={category === cat ? "filled" : "outlined"}
+                onClick={() => handleCategoryClick(cat)}
+                clickable
+            />
+            ))}
+        </Stack>
 
       <Grid size={{ xs: 12, md: 3 }}>
             <Typography variant="body2" color="text.secondary">
