@@ -1,4 +1,4 @@
-import { Box, Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography } from "@mui/material";
+import { Divider, Drawer, IconButton, List, ListItem, ListItemButton, ListItemIcon, ListItemText, Toolbar, Typography } from "@mui/material";
 import MenuIcon from '@mui/icons-material/Menu';
 import { MenuItems, MenuWidth } from "./constant";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -25,7 +25,23 @@ const SideBar = () => {
           variant="permanent"
           sx={{
             display: { xs: 'none', sm: 'block' },
-            '& .MuiDrawer-paper': { boxSizing: 'border-box', width: open ? MenuWidth : 100 },
+            width: open ? MenuWidth : 72,
+            flexShrink: 0,
+            transition: (theme) => theme.transitions.create('width', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.standard,
+            }),
+            '& .MuiDrawer-paper': {
+              boxSizing: 'border-box',
+              width: open ? MenuWidth : 72,
+              height: "100vh",
+              position: 'relative',
+              overflowX: 'hidden',
+              transition: (theme) => theme.transitions.create('width', {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.standard,
+              }),
+            },
           }}
           open={true}
           onClose={handleDrawerToggle}
@@ -33,7 +49,10 @@ const SideBar = () => {
             <div>
               <Toolbar
                 disableGutters
-                sx={{ paddingX: 2, justifyContent: open ? 'space-between' : 'flex-start'}} >
+                  sx={{
+                    px: open ? 3 : 0,
+                  justifyContent: open ? 'space-between' : 'center',
+                }} >
                   {
                     open && 
                     <Typography variant="h6" noWrap component="div" sx={{ fontWeight: 'bold', color: 'primary.main' }}>
@@ -42,21 +61,22 @@ const SideBar = () => {
                   }
                 
 
-                <IconButton onClick={handleDrawerToggle} sx={{ p:0 }}>
+                <IconButton onClick={handleDrawerToggle} sx={{ p: 0 }}>
                   <MenuIcon />
                 </IconButton>
               </Toolbar>
-              <Divider />
+
               <List disablePadding>
                 {MenuItems.map((item) => (
-                  <ListItem key={item.text} disablePadding>
+                  <ListItem key={item.text} sx={{ px: 1, py: 0.25 }} >
                     <ListItemButton
                       selected={location.pathname === item.path}
                       onClick={() => {
                         navigate(item.path);
                       }}
                       sx={{
-                        paddingX: 2, 
+                        justifyContent: open ? 'flex-start' : 'center',
+                        borderRadius: 3,
                         '&.Mui-selected': {
                           backgroundColor: 'primary.light',
                           color: 'primary.contrastText',
@@ -69,7 +89,10 @@ const SideBar = () => {
                         },
                       }}
                     >
-                      <ListItemIcon sx={{ color: location.pathname === item.path ? 'inherit' : 'text.secondary' }}>
+                      <ListItemIcon sx={{
+                        color: location.pathname === item.path ? 'inherit' : 'text.secondary',
+                        justifyContent: 'center',
+                      }}>
                         {<item.icon />}
                       </ListItemIcon>
 

@@ -1,12 +1,12 @@
 import {
-  Home as HomeIcon,
-  Dashboard as DashboardIcon,
+  PointOfSale as PointOfSaleIcon,
+  Inventory as InventoryIcon
 } from '@mui/icons-material';
 import { ROUTE } from '../../constants/route';
 
 export const MenuItems = [
-    { text: 'Kasir', path: ROUTE.HOME, icon: HomeIcon },
-    { text: 'Dashboard', path: ROUTE.DASHBOARD, icon: DashboardIcon },
+    { text: 'Kasir', path: ROUTE.HOME, icon: PointOfSaleIcon },
+    { text: 'Produk', path: ROUTE.DASHBOARD, icon: InventoryIcon },
 ];
 
 export const MenuWidth = 240;

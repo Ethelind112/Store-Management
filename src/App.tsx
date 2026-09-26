@@ -1,24 +1,14 @@
-import React, { useState } from 'react';
 import {
-  AppBar,
   Box,
   CssBaseline,
-  Drawer,
-  IconButton,
-  Toolbar,
   Typography,
   ThemeProvider,
   createTheme,
 } from '@mui/material';
 
-import {
-  Menu as MenuIcon,
-} from '@mui/icons-material';
-import { HashRouter as Router, Routes, Route, useLocation, Outlet } from 'react-router-dom';
-import { MenuItems } from './components/SideBar/constant';
+import { HashRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import SideBar from './components/SideBar';
-
-const drawerWidth = 240;
+import TopSearchBar from './components/TopSearchBar';
 
 const theme = createTheme({
   palette: {
@@ -43,52 +33,39 @@ const Home = () => (
 );
 
 const Dashboard = () => (
-  <Box sx={{ p: 2 }}>
-    <Typography variant="h4" gutterBottom>Dashboard</Typography>
-    <Typography variant="body1">
-      Here is your dashboard overview. Resize the window to see the sidebar collapse into a mobile-friendly drawer.
-    </Typography>
-  </Box>
+    <>
+        <Box
+            component="main"
+            sx={{ minWidth: 0, overflow: 'auto' }}
+        >
+            <TopSearchBar />
+            <Box sx={{ p: 2 }}>
+                <Typography variant="h4" gutterBottom>Dashboard</Typography>
+                <Typography variant="body1">
+                    Here is your dashboard overview. Resize the window to see the sidebar collapse into a mobile-friendly drawer.
+                </Typography>
+            </Box>
+        </Box>
+    </>
 );
 
 // --- Main Layout Component ---
 function ResponsiveLayout() {
-  const location = useLocation();
 
   return (
     <Box sx={{ display: 'flex', height: "100vh" }}>
-      <CssBaseline />
+        <CssBaseline />
 
-      <Box
-        component="nav"
-        sx={{ flexShrink: { sm: 0 } }}
-        aria-label="mailbox folders"
-      >
-          <SideBar />
-      </Box>
-
-      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, overflow: 'hidden' }}>
-        <AppBar
-          position="static"
-          sx={{
-            ml: { sm: `${drawerWidth}px` },
-            boxShadow: 1,
-          }}
+        <Box 
+            component="nav"
+            sx={{ flexShrink: 0 }}
         >
-          <Toolbar>
-            <Typography variant="h6" noWrap component="div">
-              {MenuItems.find(item => item.path === location.pathname)?.text || 'App'}
-            </Typography>
-          </Toolbar>
-        </AppBar>
-
-        <Box
-          component="main"
-          sx={{ flexGrow: 1, p: 3, overflow: "auto" }}
-        >
-          <Outlet />
+            <SideBar />
         </Box>
-      </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: 'column', flex: '1 1 0', minWidth: 0, overflow: 'hidden' }}>
+            <Outlet />
+        </Box>
     </Box>
   );
 }
@@ -99,7 +76,6 @@ export default function App() {
     <ThemeProvider theme={theme}>
       <Router>
         <Routes>
-          {/* Parent Route: The Layout */}
           <Route element={<ResponsiveLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
