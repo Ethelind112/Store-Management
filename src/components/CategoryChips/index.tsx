@@ -3,7 +3,7 @@ import { Chip, Stack } from "@mui/material";
 const CATEGORIES = ["All", "Electronics", "Clothing", "Home", "Books", "Toys"];
 
 interface CategoryChipsProps {
-    handleCategoryClick: (cat: String) => void;
+    handleCategoryClick: (cat: string) => void;
     category: string;
 }
 

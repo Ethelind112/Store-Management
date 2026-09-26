@@ -1,4 +1,4 @@
-export const FilterMenu =  [
+export const FilterMenuOptions =  [
     { key: 'name-asc', label: "Name (A - Z)" },
     { key: 'name-desc', label: "Name (Z - A)" }, 
     { key: 'price-asc', label: "Price (Low to High)" },

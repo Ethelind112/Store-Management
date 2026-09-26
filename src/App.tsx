@@ -8,7 +8,6 @@ import {
 
 import { HashRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import SideBar from './components/SideBar';
-import TopSearchBar from './components/TopSearchBar';
 import ProductPage from './pages/product';
 
 const theme = createTheme({

@@ -1,9 +1,9 @@
 import CheckIcon from "@mui/icons-material/Check";
 import { Box, Button, InputAdornment, Menu, MenuItem, Stack, TextField, Typography } from "@mui/material";
 import { Dispatch, SetStateAction } from "react";
+import { FilterMenuOptions } from "./constant";
 
 interface FilterMenuProps {
-    options: { key: string; label: string }[];
     anchorEl: HTMLElement | null;
     onClose: () => void;
     hasActiveFilters: boolean;
@@ -18,7 +18,6 @@ interface FilterMenuProps {
 }
 
 function FilterMenu({
-    options,
     anchorEl,
     onClose,
     hasActiveFilters,
@@ -73,7 +72,7 @@ function FilterMenu({
                 />
             </Box>
 
-            {options.map((option) => (
+            {FilterMenuOptions.map((option) => (
                 <MenuItem
                     key={option.key}
                     selected={draftSortBy === option.key}

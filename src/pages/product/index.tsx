@@ -1,10 +1,8 @@
-import React, { useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Box,
   Container,
   Typography,
-  TextField,
-  InputAdornment,
   Chip,
   Stack,
   Card,
@@ -12,15 +10,8 @@ import {
   CardContent,
   Grid,
   Pagination,
-  IconButton,
 } from "@mui/material";
-import SearchIcon from "@mui/icons-material/Search";
-import FilterListIcon from "@mui/icons-material/FilterList";
-import FilterMenu from "../../components/FilterMenu";
-import { FilterMenu as filterOptions } from "./constant";
-import CategoryChip from "../../components/CategoryChips";
-
-
+import TopSearchBar from "../../components/TopSearchBar";
 
 const SAMPLE_PRODUCTS = [
   {
@@ -146,6 +137,7 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
   const [page, setPage] = useState(1);
   const [filterMenuAnchor, setFilterMenuAnchor] = useState<HTMLElement | null>(null);
   const hasActiveFilters = minPrice !== "" || maxPrice !== "" || sortBy !== "";
+  
 
   const filtered = useMemo(() => {
     let result = products.filter((p) => {
@@ -209,80 +201,26 @@ export default function ProductPage({ products = SAMPLE_PRODUCTS }) {
   };
 
   return (
-    <Container disableGutters sx={{ display: "grid", gap: 2, py: 2.5, px: 5 }} >
+    <Container disableGutters sx={{ display: "grid", gap: 4, py: 2.5, px: 5 }} >
         
-        <Box sx={{ display: "grid", gap: 2}}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Box>
-                    <Typography variant="h5" sx={{ fontWeight: 'bold', lineHeight: 1 }} >
-                        Produk
-                    </Typography>
-
-                    <Typography variant="caption" sx={{ color: "gray" }} >
-                        Cari dan telusuri produk
-                    </Typography>
-                </Box>
-
-                <Box sx={{ width: '50%', display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
-                    <TextField
-                        fullWidth
-                        size="small"
-                        placeholder="Cari produk"
-                        value={search}
-                        onChange={handleSearchChange}
-                        sx={{ 
-                            width: "80%",
-                            '& .MuiOutlinedInput-root': {
-                                borderRadius: '20px',
-                                background: 'white',
-                                '& fieldset': { borderColor: 'transparent' },
-                                '&:hover fieldset': { borderColor: 'transparent' },
-                                '&.Mui-focused fieldset': { borderColor: 'primary.main' },
-                            }
-                        }}
-                        slotProps={{
-                            input: {
-                                startAdornment: (
-                                    <InputAdornment position="start">
-                                        <SearchIcon color="action" />
-                                    </InputAdornment>
-                                ),
-                            },
-                        }}
-                    />
-
-                    <IconButton 
-                        color={hasActiveFilters ? "primary" : "default"}
-                        sx={{ 
-                            backgroundColor: hasActiveFilters ? 'primary.main' : 'white',
-                            color: hasActiveFilters ? 'primary.contrastText' : 'inherit',
-                            '&:hover': { backgroundColor: hasActiveFilters ? 'primary.dark' : 'action.hover' },
-                        }}
-                        onClick={(event) => setFilterMenuAnchor(event.currentTarget)}
-                    >
-                        <FilterListIcon />
-                    </IconButton>
-                    
-                    <FilterMenu
-                        options={filterOptions}
-                        anchorEl={filterMenuAnchor}
-                        onClose={() => setFilterMenuAnchor(null)}
-                        hasActiveFilters={hasActiveFilters}
-                        draftSortBy={draftSortBy}
-                        setDraftSortBy={setDraftSortBy}
-                        draftMinPrice={draftMinPrice}
-                        setDraftMinPrice={setDraftMinPrice}
-                        draftMaxPrice={draftMaxPrice}
-                        setDraftMaxPrice={setDraftMaxPrice}
-                        onApply={handleApplyFilters}
-                        onClear={handleClearFilters}
-                    />
-                </Box>
-            </Box>
-        </Box>
-
-        <CategoryChip handleCategoryClick={handleCategoryClick} category={category} />
-
+        <TopSearchBar
+            title="Produk"
+            description="Cari dan telusuri produk"
+            search={search}
+            onSearchChange = {handleSearchChange}
+            hasActiveFilters = {hasActiveFilters}
+            draftMinPrice={draftMinPrice}
+            setDraftMinPrice={setDraftMinPrice}
+            draftMaxPrice={draftMaxPrice}
+            setDraftMaxPrice={setDraftMaxPrice}
+            draftSortBy={draftSortBy}
+            setDraftSortBy={setDraftSortBy}
+            onApplyFilters={handleApplyFilters}
+            onClearFilters={handleClearFilters}
+            category={category}
+            onCategoryChange={handleCategoryClick}
+        />
+        
         <Grid container spacing={3}>
             {paginated.map((product) => (
             <Grid size={{ xs: 12, sm: 6, md: 4 }} key={product.id}>
