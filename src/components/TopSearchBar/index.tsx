@@ -4,6 +4,7 @@ import FilterListIcon from "@mui/icons-material/FilterList";
 import FilterMenu from '../FilterMenu';
 import { ChangeEvent, Dispatch, SetStateAction, useState } from 'react';
 import CategoryChip from '../CategoryChips';
+import { Category } from '../../types/category';
 
 interface TopSearchBarProps {
     title: string;

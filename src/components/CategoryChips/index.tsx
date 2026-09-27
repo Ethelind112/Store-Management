@@ -1,6 +1,5 @@
 import { Chip, Stack } from "@mui/material";
-
-const CATEGORIES = ["All", "Electronics", "Clothing", "Home", "Books", "Toys"];
+import { useCategories } from "./hooks";
 
 interface CategoryChipsProps {
     handleCategoryClick: (cat: string) => void;
@@ -8,16 +7,19 @@ interface CategoryChipsProps {
 }
 
 function CategoryChip({handleCategoryClick, category}: CategoryChipsProps) {
+    const categories = useCategories();
+
     return (
         <>
             <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1, overflowX: "auto" }}>
-                {CATEGORIES.map((cat) => (
+                <Chip key="all" label="All" color={category === "All" ? "primary" : "default"} variant={category === "All" ? "filled" : "outlined"} onClick={() => handleCategoryClick("All")} clickable />
+                {categories?.map((cat) => (
                 <Chip
-                    key={cat}
-                    label={cat}
-                    color={category === cat ? "primary" : "default"}
-                    variant={category === cat ? "filled" : "outlined"}
-                    onClick={() => handleCategoryClick(cat)}
+                    key={cat.id}
+                    label={cat.name}
+                    color={category === cat.name ? "primary" : "default"}
+                    variant={category === cat.name ? "filled" : "outlined"}
+                    onClick={() => handleCategoryClick(cat.name)}
                     clickable
                 />
                 ))}
