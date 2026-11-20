@@ -13,8 +13,8 @@ export const productService = {
       searchParams.set('page', String(params.page));
     }
 
-    if (params?.categoryId !== undefined && params.categoryId !== '') {
-      searchParams.set('categoryId', String(params.categoryId));
+    if (params?.category !== undefined && params.category !== '') {
+      searchParams.set('category', String(params.category));
     }
 
     const query = searchParams.toString();

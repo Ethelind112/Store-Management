@@ -10,5 +10,5 @@ export interface Product {
 
 export interface GetProductsParams {
   page?: number;
-  categoryId?: string | number;
+  category?: string | number;
 }

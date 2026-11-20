@@ -18,10 +18,10 @@ interface TopSearchBarProps {
     setDraftMaxPrice: Dispatch<SetStateAction<string>>;
     draftSortBy: string;
     setDraftSortBy: Dispatch<SetStateAction<string>>;
-    onApplyFilters: () => void;
+    onApplyFilters: (category: Category | null) => void;
     onClearFilters: () => void;
-    category?: string;
-    onCategoryChange: (cat: string) => void;
+    category?: Category | null;
+    onCategoryChange: (cat: Category | null) => void;
 }
 
 const TopSearchBar = ({
@@ -38,7 +38,7 @@ const TopSearchBar = ({
     setDraftSortBy,
     onApplyFilters,
     onClearFilters,
-    category = 'All',
+    category = null,
     onCategoryChange,
 }: TopSearchBarProps) => {
     const [filterMenuAnchor, setFilterMenuAnchor] = useState<HTMLElement | null>(null);
@@ -114,12 +114,10 @@ const TopSearchBar = ({
                             draftMaxPrice={draftMaxPrice}
                             setDraftMaxPrice={setDraftMaxPrice}
                             onApply={() => {
-                                onApplyFilters();
-                                setFilterMenuAnchor(null);
+                                onApplyFilters(category);
                             }}
                             onClear={() => {
                                 onClearFilters();
-                                setFilterMenuAnchor(null);
                             }}
                         />
                     </Box>
