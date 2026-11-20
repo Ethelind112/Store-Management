@@ -10,7 +10,7 @@ export function useProducts() {
     const [currentPage, setCurrentPage] = useState(1);
     const [category, setCategory] = useState<Category | null>(null);
 
-    const { data, isLoading, error } = useQuery<PaginationResponse<Product[]>>({
+    const { data, isLoading, error, refetch, isRefetching } = useQuery<PaginationResponse<Product[]>>({
         queryKey: ['products', currentPage, category?.id],
         queryFn: () => productService.getAll({ page: currentPage, category: category?.id || undefined }),
     });
@@ -24,5 +24,7 @@ export function useProducts() {
         setCurrentPage,
         category,
         setCategory,
+        refetch,
+        isRefetching,
     };
 }

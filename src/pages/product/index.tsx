@@ -1,10 +1,9 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import {
   Box,
   Container,
   Typography,
   Chip,
-  Stack,
   Card,
   CardMedia,
   CardContent,
@@ -13,17 +12,16 @@ import {
 } from "@mui/material";
 import TopSearchBar from "../../components/TopSearchBar";
 import { useProducts } from "./hooks";
+import { LoadingPage } from "../../components/Loading";
+import { ErrorPage } from "../../components/Error";
 
-const PAGE_SIZE = 6;
-
-function truncate(text, max = 100) {
+function truncate(text, max = 20) {
   if (!text) return "";
   return text.length > max ? text.slice(0, max).trimEnd() + "..." : text;
 }
 
 export default function ProductPage() {
   const [search, setSearch] = useState("");
-  // const [category, setCategory] = useState("All");
   const [sortBy, setSortBy] = useState("");
   const [draftSortBy, setDraftSortBy] = useState("");
   
@@ -32,7 +30,6 @@ export default function ProductPage() {
   const [draftMinPrice, setDraftMinPrice] = useState("");
   const [draftMaxPrice, setDraftMaxPrice] = useState("");
   
-  const [page, setPage] = useState(1);
   const hasActiveFilters = minPrice !== "" || maxPrice !== "" || sortBy !== "";
   
   const {
@@ -44,6 +41,8 @@ export default function ProductPage() {
     setCurrentPage,
     category,
     setCategory,
+    refetch,
+    isRefetching,
   } = useProducts();
 
   // const filtered = useMemo(() => {
@@ -76,14 +75,14 @@ export default function ProductPage() {
 
   const handleCategoryClick = (cat) => {
     setCategory(cat);
-    setPage(1);
+    setCurrentPage(1);
   };
 
   const handleApplyFilters = (category) => {
     setSortBy(draftSortBy);
     setMinPrice(draftMinPrice);
     setMaxPrice(draftMaxPrice);
-    setPage(1);
+    setCurrentPage(1);
     setCategory(category);
   };
 
@@ -95,14 +94,22 @@ export default function ProductPage() {
     setMaxPrice("");
     setDraftMinPrice("");
     setDraftMaxPrice("");
-    setPage(1);
+    setCurrentPage(1);
     setCategory(null);
   };
 
   const handleSearchChange = (e) => {
     setSearch(e.target.value);
-    setPage(1);
+    setCurrentPage(1);
   };
+
+  if(error) {
+    return <ErrorPage onRetry={refetch} isRetrying={isRefetching} />;
+  }
+
+  if (isLoading) {
+    return <LoadingPage />;
+  }
 
   return (
     <Container disableGutters sx={{ display: "grid", gap: 4, py: 2.5, px: 5 }} >
@@ -127,29 +134,43 @@ export default function ProductPage() {
         
         <Grid container spacing={3}>
             {data.map((product) => (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={product.id}>
+            <Grid size={{ xs: 12, sm: 4, md: 3 }} key={product.id}>
                 <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-                <CardMedia
+                  <CardMedia
                     component="img"
                     height="180"
                     // image={product.image}
                     alt={product.name}
                     sx={{ objectFit: "cover" }}
-                />
-                <CardContent sx={{ flexGrow: 1 }}>
-                    <Stack direction="row" sx={{ mb: 1, justifyContent: "space-between", alignItems:"flex-start" }}>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                        {product.name}
-                    </Typography>
+                  />
+                  <CardContent sx={{ flexGrow: 1 }}>
                     <Chip label={product.category} size="small" color="secondary" variant="outlined" />
-                    </Stack>
-                    <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
-                    ${product.max_price.toFixed(2)}
+
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5 }}>
+                      {truncate(product.name)}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                    {truncate(product.description, 100)}
+
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        lineHeight: 1.5,
+                        height: '3em',
+                        mt: 0.5,
+                      }}
+                    >
+                      {product.description}
                     </Typography>
-                </CardContent>
+
+                    <Typography variant="body1" color="primary" sx={{ mt: 1.5 }}>
+                      Rp{product.max_price.toFixed(2)} - Rp{product.min_price.toFixed(2)}
+                    </Typography>
+                    
+                  </CardContent>
                 </Card>
             </Grid>
             ))}
