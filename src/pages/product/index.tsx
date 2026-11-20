@@ -12,7 +12,6 @@ import {
   Pagination,
 } from "@mui/material";
 import TopSearchBar from "../../components/TopSearchBar";
-import { useCategories } from "../../components/CategoryChips/hooks";
 
 const SAMPLE_PRODUCTS = [
   {
