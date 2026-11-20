@@ -10,5 +10,11 @@ export interface Product {
 
 export interface GetProductsParams {
   page?: number;
+  per_page?: number;
   category?: string | number;
+  name?: string;
+  min_price?: number;
+  max_price?: number;
+  sort_by?: 'name' | 'min_price';
+  order?: 'asc' | 'desc';
 }

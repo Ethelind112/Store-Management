@@ -13,8 +13,32 @@ export const productService = {
       searchParams.set('page', String(params.page));
     }
 
+    if (params?.per_page !== undefined) {
+      searchParams.set('per_page', String(params.per_page));
+    }
+
     if (params?.category !== undefined && params.category !== '') {
       searchParams.set('category', String(params.category));
+    }
+
+    if (params?.name !== undefined && params.name.trim() !== '') {
+      searchParams.set('name', params.name.trim());
+    }
+
+    if (params?.min_price !== undefined && !isNaN(params.min_price)) {
+      searchParams.set('min_price', String(params.min_price));
+    }
+
+    if (params?.max_price !== undefined && !isNaN(params.max_price)) {
+      searchParams.set('max_price', String(params.max_price));
+    }
+
+    if (params?.sort_by) {
+      searchParams.set('sort_by', params.sort_by);
+    }
+
+    if (params?.order) {
+      searchParams.set('order', params.order);
     }
 
     const query = searchParams.toString();

@@ -1,4 +1,4 @@
-import { Box, Chip, IconButton, InputAdornment, Stack, TextField, Typography } from '@mui/material';
+import { Box, IconButton, InputAdornment, TextField, Typography } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from "@mui/icons-material/FilterList";
 import FilterMenu from '../FilterMenu';
@@ -115,9 +115,11 @@ const TopSearchBar = ({
                             setDraftMaxPrice={setDraftMaxPrice}
                             onApply={() => {
                                 onApplyFilters(category);
+                                setFilterMenuAnchor(null);
                             }}
                             onClear={() => {
                                 onClearFilters();
+                                setFilterMenuAnchor(null);
                             }}
                         />
                     </Box>

@@ -49,8 +49,8 @@ function CategoryChip({handleCategoryClick, category}: CategoryChipsProps) {
                             <Chip
                                 key={cat.id}
                                 label={cat.name}
-                                color={category === cat ? "primary" : "default"}
-                                variant={category === cat ? "filled" : "outlined"}
+                                color={category?.id === cat.id ? "primary" : "default"}
+                                variant={category?.id === cat.id ? "filled" : "outlined"}
                                 onClick={() => handleCategoryClick(cat)}
                                 clickable
                             />
