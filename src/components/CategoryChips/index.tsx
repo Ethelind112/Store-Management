@@ -1,9 +1,11 @@
-import { Chip, Skeleton, Stack } from "@mui/material";
+import { Box, Chip, Skeleton, Stack } from "@mui/material";
+import RefreshIcon from '@mui/icons-material/Refresh';
 import { categoryService } from "../../services/categoryService";
 import { Category } from "../../types/category";
 import { useQuery } from "@tanstack/react-query";
 import { Response } from "../../types/response";
 import { LoadingPage } from "../Loading";
+import { useState } from "react";
 
 interface CategoryChipsProps {
     handleCategoryClick: (cat: string) => void;
@@ -11,10 +13,26 @@ interface CategoryChipsProps {
 }
 
 function CategoryChip({handleCategoryClick, category}: CategoryChipsProps) {
-    const { data, isLoading, error } = useQuery<Response<Category[]>>({
+    const { data, isLoading, error, refetch, isRefetching } = useQuery<Response<Category[]>>({
         queryKey: ['categories'],
         queryFn: () => categoryService.getAll(),
     });
+
+   if (error) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                <Chip
+                    icon={<RefreshIcon />}
+                    label={isRefetching ? 'Retrying...' : "Couldn't load categories. Retry"}
+                    color="error"
+                    variant="outlined"
+                    onClick={() => refetch()}
+                    disabled={isRefetching}
+                    clickable
+                />
+            </Box>
+        )
+    }
 
     return (
         <>
