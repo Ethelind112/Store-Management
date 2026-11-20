@@ -4,8 +4,6 @@ import { categoryService } from "../../services/categoryService";
 import { Category } from "../../types/category";
 import { useQuery } from "@tanstack/react-query";
 import { Response } from "../../types/response";
-import { LoadingPage } from "../Loading";
-import { useState } from "react";
 
 interface CategoryChipsProps {
     handleCategoryClick: (cat: string) => void;
