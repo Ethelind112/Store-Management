@@ -1,4 +1,4 @@
-import { useState, useMemo, ChangeEvent } from "react";
+import { useState, useMemo } from "react";
 import {
   Box,
   Container,
@@ -43,12 +43,8 @@ import {
   CreditCard as CreditCardIcon,
 } from "@mui/icons-material";
 import TopSearchBar from "../../components/TopSearchBar";
-import { Product, SAMPLE_PRODUCTS } from "../product";
-
-export interface CartItem {
-  product: Product;
-  quantity: number;
-}
+import { Category } from "../../types/category";
+import { CashierProduct, CartItem, SAMPLE_PRODUCTS } from "./types";
 
 const PAGE_SIZE = 6;
 
@@ -57,10 +53,11 @@ function truncate(text: string, max = 80) {
   return text.length > max ? text.slice(0, max).trimEnd() + "..." : text;
 }
 
-export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?: Product[] }) {
+export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?: CashierProduct[] }) {
   // --- Filter & Search States ---
   const [search, setSearch] = useState("");
-  const [category, setCategory] = useState("All");
+  // category: null = "All" — matches TopSearchBar's Category | null interface
+  const [category, setCategory] = useState<Category | null>(null);
   const [sortBy, setSortBy] = useState("");
   const [draftSortBy, setDraftSortBy] = useState("");
 
@@ -85,7 +82,8 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
   const filtered = useMemo(() => {
     let result = products.filter((p) => {
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      const matchesCategory = category === "All" || p.category === category;
+      // category.name matches the string-based category field on CashierProduct
+      const matchesCategory = category === null || p.category === category.name;
       const matchesMin = minPrice === "" || p.price >= Number(minPrice);
       const matchesMax = maxPrice === "" || p.price <= Number(maxPrice);
       return matchesSearch && matchesCategory && matchesMin && matchesMax;
@@ -165,12 +163,14 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
   };
 
   // --- Filter Handlers ---
-  const handleCategoryClick = (cat: string) => {
+  // onCategoryChange matches TopSearchBar's (cat: Category | null) => void signature
+  const handleCategoryClick = (cat: Category | null) => {
     setCategory(cat);
     setPage(1);
   };
 
-  const handleApplyFilters = () => {
+  // onApplyFilters matches TopSearchBar's (category: Category | null) => void signature
+  const handleApplyFilters = (_cat?: Category | null) => {
     setSortBy(draftSortBy);
     setMinPrice(draftMinPrice);
     setMaxPrice(draftMaxPrice);
@@ -178,7 +178,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
   };
 
   const handleClearFilters = () => {
-    setCategory("All");
+    setCategory(null);
     setSortBy("");
     setDraftSortBy("");
     setMinPrice("");
@@ -188,8 +188,9 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
     setPage(1);
   };
 
-  const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
+  // onSearchChange matches TopSearchBar's (searchTerm: string) => void signature
+  const handleSearchChange = (searchTerm: string) => {
+    setSearch(searchTerm);
     setPage(1);
   };
 
@@ -218,8 +219,8 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
             {/* Top Search & Filter Bar */}
             <TopSearchBar
-              title="Kasir"
-              description="Pilih produk dan kelola transaksi pesanan"
+              title="Produk"
+              description="Cari dan telusuri produk"
               search={search}
               onSearchChange={handleSearchChange}
               hasActiveFilters={hasActiveFilters}
@@ -294,7 +295,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                           <Chip label={product.category} size="small" color="secondary" variant="outlined" />
                         </Stack>
                         <Typography variant="h6" color="primary" sx={{ mb: 1, fontWeight: "bold" }}>
-                          ${product.price.toFixed(2)}
+                          Rp{product.price.toLocaleString("id-ID")}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
                           {truncate(product.description, 70)}
@@ -325,21 +326,22 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                               Jumlah untuk Checkout:
                             </Typography>
                             <Stack direction="row" spacing={1} sx={{ alignItems: "center", width: "100%" }}>
+                              {/* Minus / Delete button — shows delete icon when qty=1 */}
                               <IconButton
                                 size="small"
-                                color="primary"
+                                color={currentQty === 1 ? "error" : "primary"}
                                 onClick={() => handleUpdateQuantity(product.id, currentQty - 1)}
                                 sx={{
                                   border: "1px solid",
-                                  borderColor: "divider",
+                                  borderColor: currentQty === 1 ? "error.light" : "divider",
                                   borderRadius: 1.5,
                                   bgcolor: "background.paper",
                                   "&:hover": { bgcolor: "action.hover" },
                                 }}
-                                aria-label="Kurangi kuantitas"
+                                aria-label={currentQty === 1 ? "Hapus dari keranjang" : "Kurangi kuantitas"}
                               >
                                 {currentQty === 1 ? (
-                                  <DeleteOutlineIcon fontSize="small" color="error" />
+                                  <DeleteOutlineIcon fontSize="small" />
                                 ) : (
                                   <RemoveIcon fontSize="small" />
                                 )}
@@ -373,6 +375,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                                 }}
                               />
 
+                              {/* Plus button */}
                               <IconButton
                                 size="small"
                                 color="primary"
@@ -388,23 +391,6 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                               >
                                 <AddIcon fontSize="small" />
                               </IconButton>
-
-                              <Tooltip title="Hapus dari keranjang">
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() => handleRemoveFromCart(product.id)}
-                                  sx={{
-                                    border: "1px solid",
-                                    borderColor: "error.light",
-                                    borderRadius: 1.5,
-                                    p: 0.75,
-                                  }}
-                                  aria-label="Hapus item"
-                                >
-                                  <DeleteOutlineIcon fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
                             </Stack>
                           </Box>
                         )}
@@ -556,7 +542,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                             {item.product.name}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            ${item.product.price.toFixed(2)} / pcs
+                            Rp{item.product.price.toLocaleString("id-ID")} / pcs
                           </Typography>
                         </Box>
 
@@ -634,10 +620,10 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                         {/* Total price for each item */}
                         <Box sx={{ textAlign: "right" }}>
                           <Typography variant="subtitle2" color="primary" sx={{ fontWeight: "bold" }}>
-                            ${itemTotal.toFixed(2)}
+                            Rp{itemTotal.toLocaleString("id-ID")}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {item.quantity} × ${item.product.price.toFixed(2)}
+                            {item.quantity} × Rp{item.product.price.toLocaleString("id-ID")}
                           </Typography>
                         </Box>
                       </Stack>
@@ -676,7 +662,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                   Total Belanja
                 </Typography>
                 <Typography variant="h5" color="primary.main" sx={{ fontWeight: "bold" }}>
-                  ${totalPrice.toFixed(2)}
+                  Rp{totalPrice.toLocaleString("id-ID")}
                 </Typography>
               </Stack>
 
@@ -697,7 +683,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                   fontSize: "1rem",
                 }}
               >
-                Checkout (${totalPrice.toFixed(2)})
+                Checkout (Rp{totalPrice.toLocaleString("id-ID")})
               </Button>
             </Stack>
           </Paper>
@@ -736,7 +722,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                       {item.product.name} <b>× {item.quantity}</b>
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: "medium" }}>
-                      ${(item.quantity * item.product.price).toFixed(2)}
+                      Rp{(item.quantity * item.product.price).toLocaleString("id-ID")}
                     </Typography>
                   </Stack>
                 ))}
@@ -759,7 +745,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                 Total Tagihan:
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: "bold" }}>
-                ${totalPrice.toFixed(2)}
+                Rp{totalPrice.toLocaleString("id-ID")}
               </Typography>
             </Stack>
 
@@ -847,7 +833,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                 <TextField
                   fullWidth
-                  label="Uang Tunai Diterima ($)"
+                  label="Uang Tunai Diterima (Rp)"
                   type="number"
                   value={cashReceived}
                   onChange={(e) => setCashReceived(e.target.value)}
@@ -858,13 +844,13 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
 
                 {/* Quick Cash Buttons */}
                 <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-                  {[totalPrice, Math.ceil(totalPrice / 10) * 10, 50, 100, 200]
+                  {[totalPrice, Math.ceil(totalPrice / 5000) * 5000, 50000, 100000, 200000]
                     .filter((val, idx, arr) => val >= totalPrice && arr.indexOf(val) === idx)
                     .map((val) => (
                       <Chip
                         key={val}
-                        label={`$${val.toFixed(2)}`}
-                        onClick={() => setCashReceived(val.toFixed(2))}
+                        label={`Rp${val.toLocaleString("id-ID")}`}
+                        onClick={() => setCashReceived(val.toString())}
                         clickable
                         variant="outlined"
                         size="small"
@@ -881,7 +867,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                     color={cashChange >= 0 ? "success.main" : "error.main"}
                     sx={{ fontWeight: "bold" }}
                   >
-                    ${cashChange >= 0 ? cashChange.toFixed(2) : "0.00"}
+                    Rp{cashChange >= 0 ? cashChange.toLocaleString("id-ID") : "0"}
                   </Typography>
                 </Stack>
               </Box>
