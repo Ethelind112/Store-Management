@@ -1,3 +1,5 @@
+import { Category } from "./category";
+
 export interface Product { 
     id: string;
     name: string;
@@ -5,7 +7,8 @@ export interface Product {
     quantity: number;
     min_price: number;
     max_price: number;
-    category: string;
+    category: Category;
+    image?: string;
 }
 
 export interface GetProductsParams {

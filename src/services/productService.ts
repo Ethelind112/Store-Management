@@ -22,7 +22,7 @@ export const productService = {
     }
 
     if (params?.name !== undefined && params.name.trim() !== '') {
-      searchParams.set('name', params.name.trim());
+      searchParams.set('name', String(params.name.trim()));
     }
 
     if (params?.min_price !== undefined && !isNaN(params.min_price)) {

@@ -16,6 +16,7 @@ import { LoadingPage } from "../../components/Loading";
 import { ErrorPage } from "../../components/Error";
 import { FilterMenuOptions } from "../../components/FilterMenu/constant";
 import { Category } from "../../types/category";
+import HideImageOutlinedIcon from '@mui/icons-material/HideImageOutlined';
 
 function truncate(text?: string, max = 20) {
   if (!text) return "";
@@ -81,17 +82,13 @@ export default function ProductPage() {
     setCurrentPage(1);
   };
 
-  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(e.target.value);
+  const handleSearchChange = (searchTerm: string) => {
+    setSearch(searchTerm);
     setCurrentPage(1);
   };
 
   if (error) {
     return <ErrorPage onRetry={refetch} isRetrying={isRefetching} />;
-  }
-
-  if (isLoading) {
-    return <LoadingPage />;
   }
 
   return (
@@ -114,55 +111,77 @@ export default function ProductPage() {
         onCategoryChange={handleCategoryClick}
       />
 
-      <Grid container spacing={3}>
-        {data.map((product) => (
-          <Grid size={{ xs: 12, sm: 4, md: 3 }} key={product.id}>
-            <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
-              <CardMedia
-                component="img"
-                height="180"
-                alt={product.name}
-                sx={{ objectFit: "cover" }}
-              />
-              <CardContent sx={{ flexGrow: 1 }}>
-                <Chip label={product.category} size="small" color="secondary" variant="outlined" />
+      {isLoading ? (
+        <LoadingPage />
+      ) : (
+        <>
+          <Grid container spacing={3}>
+            {data.map((product) => (
+              <Grid size={{ xs: 12, sm: 4, md: 3 }} key={product.id}>
+                <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+                  {product.image ? (
+                    <CardMedia
+                      component="img"
+                      height="180"
+                      image={product.image}
+                      alt={product.name}
+                      sx={{ objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <Box
+                      sx={{
+                        height: 180,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        bgcolor: 'grey.100',
+                        color: 'text.secondary',
+                      }}
+                    >
+                      <HideImageOutlinedIcon sx={{ fontSize: 40 }} />
+                    </Box>
+                  )}
+                  <CardContent sx={{ flexGrow: 1 }}>
+                    <Chip label={product.category.name || "Uncategorized"} size="small" color="secondary" variant="outlined" />
 
-                <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5 }}>
-                  {truncate(product.name)}
-                </Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5 }}>
+                      {truncate(product.name)}
+                    </Typography>
 
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  sx={{
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical',
-                    overflow: 'hidden',
-                    lineHeight: 1.5,
-                    height: '3em',
-                    mt: 0.5,
-                  }}
-                >
-                  {product.description}
-                </Typography>
+                    <Typography
+                      variant="caption"
+                      color="text.secondary"
+                      sx={{
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        lineHeight: 1.5,
+                        height: '3em',
+                        mt: 0.5,
+                      }}
+                    >
+                      {product.description || "-"}
+                    </Typography>
 
-                <Typography variant="body1" color="primary" sx={{ mt: 1.5 }}>
-                  Rp{product.min_price != null ? product.min_price.toFixed(2) : "0.00"} - Rp{product.max_price != null ? product.max_price.toFixed(2) : "0.00"}
+                    <Typography variant="body1" color="primary" sx={{ mt: 1.5 }}>
+                      Rp{product.min_price != null ? product.min_price.toFixed(2) : "0.00"} - Rp{product.max_price != null ? product.max_price.toFixed(2) : "0.00"}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+
+            {data.length === 0 && (
+              <Grid size={{ xs: 12 }}>
+                <Typography variant="body1" color="text.secondary" align="center" sx={{ py: 6 }}>
+                  No products match your filters.
                 </Typography>
-              </CardContent>
-            </Card>
+              </Grid>
+            )}
           </Grid>
-        ))}
-
-        {data.length === 0 && (
-          <Grid size={{ xs: 12 }}>
-            <Typography variant="body1" color="text.secondary" align="center" sx={{ py: 6 }}>
-              No products match your filters.
-            </Typography>
-          </Grid>
-        )}
-      </Grid>
+        </>
+      )}
 
       {data.length > 0 && (
         <Box sx={{ mt: 4, display: "flex", justifyContent: "center" }}>
