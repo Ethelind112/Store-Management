@@ -42,6 +42,7 @@ import {
   QrCode2 as QrCode2Icon,
   CreditCard as CreditCardIcon,
   HideImageOutlined as HideImageOutlinedIcon,
+  Print as PrintIcon,
 } from "@mui/icons-material";
 import TopSearchBar from "../../components/TopSearchBar";
 import { Category } from "../../types/category";
@@ -52,6 +53,7 @@ import { LoadingPage } from "../../components/Loading";
 import { ErrorPage } from "../../components/Error";
 import { useCreateTransaction } from "./hooks";
 import { CreateTransactionPayload } from "../../types/transaction";
+import { printReceipt, ReceiptData } from "../../utils/printReceipt";
 
 const STATIC_ADMIN_ID = "0071665c-eb86-4738-a1ab-d230226b8dda";
 
@@ -257,6 +259,8 @@ export default function CashierPage() {
   // ─── Checkout dialog state ─────────────────────────────────────────────────
   const createTransaction = useCreateTransaction();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [checkoutStep, setCheckoutStep] = useState<"confirm" | "success">("confirm");
+  const [completedTransaction, setCompletedTransaction] = useState<ReceiptData | null>(null);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [cashReceived, setCashReceived] = useState("");
   const [successSnackbar, setSuccessSnackbar] = useState(false);
@@ -350,12 +354,48 @@ export default function CashierPage() {
   // ─── Checkout handlers ─────────────────────────────────────────────────────
   const handleOpenCheckout = () => {
     setErrorMessage(null);
+    setCheckoutStep("confirm");
+    setCompletedTransaction(null);
     setCashReceived(totalPrice.toLocaleString("id-ID"));
     setIsCheckoutOpen(true);
   };
 
+  const handleCloseCheckout = () => {
+    if (!createTransaction.isPending) {
+      setIsCheckoutOpen(false);
+      setErrorMessage(null);
+      setCheckoutStep("confirm");
+      setCompletedTransaction(null);
+    }
+  };
+
+  const handlePrintReceipt = () => {
+    if (completedTransaction) {
+      printReceipt(completedTransaction);
+    }
+  };
+
   const handleConfirmCheckout = () => {
     setErrorMessage(null);
+    const parsedCash = Number(cashReceived.replace(/\./g, "").replace(",", "."));
+    const receiptSnapshot: ReceiptData = {
+      transactionId: `TRX-${Date.now().toString().slice(-6)}`,
+      date: new Date().toLocaleString("id-ID", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+      items: cartItems.map((item) => ({
+        name: item.product.name,
+        quantity: item.quantity,
+        price: item.product.max_price ?? item.product.min_price ?? 0,
+      })),
+      totalQuantity,
+      totalPrice,
+      paymentMethod,
+      cashReceived: paymentMethod === "cash" && !isNaN(parsedCash) ? parsedCash : undefined,
+      cashChange: paymentMethod === "cash" && !isNaN(cashChange) ? Math.max(0, cashChange) : undefined,
+    };
+
     const payload: CreateTransactionPayload = {
       admin_id: STATIC_ADMIN_ID,
       payment_method: paymentMethod,
@@ -367,10 +407,14 @@ export default function CashierPage() {
     };
 
     createTransaction.mutate(payload, {
-      onSuccess: () => {
-        setIsCheckoutOpen(false);
-        setSuccessSnackbar(true);
+      onSuccess: (res) => {
+        if (res?.data?.id) {
+          receiptSnapshot.transactionId = res.data.id;
+        }
+        setCompletedTransaction(receiptSnapshot);
         setCart({});
+        setCheckoutStep("success");
+        setSuccessSnackbar(true);
       },
       onError: (err: any) => {
         setErrorMessage(err.message || "Gagal memproses transaksi. Silakan coba lagi.");
@@ -828,230 +872,355 @@ export default function CashierPage() {
       </Grid>
 
       {/* ======================================================================
-          CHECKOUT CONFIRMATION DIALOG
+          CHECKOUT & SUCCESS DIALOG
           ====================================================================== */}
       <Dialog
         open={isCheckoutOpen}
-        onClose={() => {
-          if (!createTransaction.isPending) {
-            setIsCheckoutOpen(false);
-            setErrorMessage(null);
-          }
-        }}
+        onClose={handleCloseCheckout}
         maxWidth="sm"
         fullWidth
         slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
       >
         <DialogTitle
-          sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}
+          sx={{
+            fontWeight: "bold",
+            display: "flex",
+            alignItems: "center",
+            gap: 1,
+            color: checkoutStep === "success" ? "success.main" : "text.primary",
+          }}
         >
-          <PaymentIcon color="primary" />
-          Konfirmasi Pembayaran
+          {checkoutStep === "confirm" ? (
+            <>
+              <PaymentIcon color="primary" />
+              Konfirmasi Pembayaran
+            </>
+          ) : (
+            <>
+              <CheckCircleOutlineIcon color="success" />
+              Transaksi Berhasil!
+            </>
+          )}
         </DialogTitle>
 
         <DialogContent dividers>
-          <Stack spacing={2.5}>
-            {errorMessage && (
-              <Alert severity="error" onClose={() => setErrorMessage(null)}>
-                {errorMessage}
-              </Alert>
-            )}
-            {/* Order summary */}
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Ringkasan Pesanan ({totalQuantity} item)
-              </Typography>
-              <Paper
-                variant="outlined"
-                sx={{ p: 1.5, borderRadius: 2, maxHeight: 160, overflowY: "auto" }}
+          {checkoutStep === "confirm" ? (
+            <Stack spacing={2.5}>
+              {errorMessage && (
+                <Alert severity="error" onClose={() => setErrorMessage(null)}>
+                  {errorMessage}
+                </Alert>
+              )}
+              {/* Order summary */}
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Ringkasan Pesanan ({totalQuantity} item)
+                </Typography>
+                <Paper
+                  variant="outlined"
+                  sx={{ p: 1.5, borderRadius: 2, maxHeight: 160, overflowY: "auto" }}
+                >
+                  {cartItems.map((item) => (
+                    <Stack
+                      key={item.product.id}
+                      direction="row"
+                      sx={{
+                        py: 0.5,
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography variant="body2">
+                        {item.product.name} <b>× {item.quantity}</b>
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontWeight: "medium" }}>
+                        Rp
+                        {(
+                          item.quantity *
+                          (item.product.max_price ?? item.product.min_price ?? 0)
+                        ).toLocaleString("id-ID")}
+                      </Typography>
+                    </Stack>
+                  ))}
+                </Paper>
+              </Box>
+
+              {/* Total bill */}
+              <Stack
+                direction="row"
+                sx={{
+                  p: 2,
+                  bgcolor: "primary.light",
+                  borderRadius: 2,
+                  color: "primary.contrastText",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
               >
-                {cartItems.map((item) => (
+                <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
+                  Total Tagihan:
+                </Typography>
+                <Typography variant="h5" sx={{ fontWeight: "bold" }}>
+                  Rp{totalPrice.toLocaleString("id-ID")}
+                </Typography>
+              </Stack>
+
+              {/* Payment method */}
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary" gutterBottom>
+                  Metode Pembayaran
+                </Typography>
+                <RadioGroup
+                  row
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                  sx={{ gap: 1 }}
+                >
+                  {[
+                    { value: "cash", icon: <LocalAtmIcon fontSize="small" />, label: "Tunai" },
+                    { value: "qris", icon: <QrCode2Icon fontSize="small" />, label: "QRIS" },
+                    {
+                      value: "card",
+                      icon: <CreditCardIcon fontSize="small" />,
+                      label: "Kartu Debit/Kredit",
+                    },
+                  ].map((opt) => (
+                    <Paper
+                      key={opt.value}
+                      variant="outlined"
+                      sx={{
+                        px: 1.5,
+                        py: 0.5,
+                        borderRadius: 2,
+                        borderColor:
+                          paymentMethod === opt.value ? "primary.main" : "divider",
+                        bgcolor:
+                          paymentMethod === opt.value ? "action.hover" : "transparent",
+                      }}
+                    >
+                      <FormControlLabel
+                        value={opt.value}
+                        control={<Radio size="small" />}
+                        label={
+                          <Stack
+                            direction="row"
+                            spacing={0.5}
+                            sx={{ alignItems: "center" }}
+                          >
+                            {opt.icon}
+                            <Typography variant="body2">{opt.label}</Typography>
+                          </Stack>
+                        }
+                      />
+                    </Paper>
+                  ))}
+                </RadioGroup>
+              </Box>
+
+              {/* Cash calculations */}
+              {paymentMethod === "cash" && (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  <TextField
+                    fullWidth
+                    label="Uang Tunai Diterima (Rp)"
+                    type="number"
+                    value={cashReceived}
+                    onChange={(e) => setCashReceived(e.target.value)}
+                    size="small"
+                    error={!isCashSufficient}
+                    helperText={
+                      !isCashSufficient
+                        ? "Nominal uang diterima kurang dari total belanja"
+                        : ""
+                    }
+                  />
+
+                  {/* Quick amount chips */}
+                  <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
+                    {[
+                      totalPrice,
+                      Math.ceil(totalPrice / 10000) * 10000,
+                      50000,
+                      100000,
+                      200000,
+                    ]
+                      .filter(
+                        (val, idx, arr) => val >= totalPrice && arr.indexOf(val) === idx
+                      )
+                      .map((val) => (
+                        <Chip
+                          key={val}
+                          label={`Rp${val.toLocaleString("id-ID")}`}
+                          onClick={() => setCashReceived(String(val))}
+                          clickable
+                          variant="outlined"
+                          size="small"
+                        />
+                      ))}
+                  </Stack>
+
                   <Stack
-                    key={item.product.id}
                     direction="row"
-                    sx={{
-                      py: 0.5,
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                    }}
+                    sx={{ pt: 1, justifyContent: "space-between" }}
                   >
-                    <Typography variant="body2">
-                      {item.product.name} <b>× {item.quantity}</b>
+                    <Typography variant="body2" color="text.secondary">
+                      Kembalian:
                     </Typography>
-                    <Typography variant="body2" sx={{ fontWeight: "medium" }}>
-                      Rp
-                      {(
-                        item.quantity *
-                        (item.product.max_price ?? item.product.min_price ?? 0)
-                      ).toLocaleString("id-ID")}
+                    <Typography
+                      variant="subtitle1"
+                      color={cashChange >= 0 ? "success.main" : "error.main"}
+                      sx={{ fontWeight: "bold" }}
+                    >
+                      Rp{cashChange >= 0 ? cashChange.toLocaleString("id-ID") : "0"}
                     </Typography>
                   </Stack>
-                ))}
-              </Paper>
-            </Box>
-
-            {/* Total bill */}
-            <Stack
-              direction="row"
-              sx={{
-                p: 2,
-                bgcolor: "primary.light",
-                borderRadius: 2,
-                color: "primary.contrastText",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
-                Total Tagihan:
-              </Typography>
-              <Typography variant="h5" sx={{ fontWeight: "bold" }}>
-                Rp{totalPrice.toLocaleString("id-ID")}
-              </Typography>
+                </Box>
+              )}
             </Stack>
+          ) : (
+            /* Phase 2: Transaction Success & Receipt View */
+            <Stack spacing={2.5} sx={{ py: 1 }}>
+              {/* Highlight change if payment was cash */}
+              {completedTransaction?.paymentMethod === "cash" && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    bgcolor: "success.50",
+                    border: "2px dashed",
+                    borderColor: "success.main",
+                    borderRadius: 3,
+                    textAlign: "center",
+                  }}
+                >
+                  <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 600 }}>
+                    Kembalian untuk Pelanggan:
+                  </Typography>
+                  <Typography variant="h3" color="success.main" sx={{ fontWeight: 800, my: 0.5 }}>
+                    Rp{(completedTransaction.cashChange ?? 0).toLocaleString("id-ID")}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    Uang Diterima: Rp{(completedTransaction.cashReceived ?? 0).toLocaleString("id-ID")} • Total Tagihan: Rp{completedTransaction.totalPrice.toLocaleString("id-ID")}
+                  </Typography>
+                </Paper>
+              )}
 
-            {/* Payment method */}
-            <Box>
-              <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-                Metode Pembayaran
-              </Typography>
-              <RadioGroup
-                row
-                value={paymentMethod}
-                onChange={(e) => setPaymentMethod(e.target.value)}
-                sx={{ gap: 1 }}
-              >
-                {[
-                  { value: "cash", icon: <LocalAtmIcon fontSize="small" />, label: "Tunai" },
-                  { value: "qris", icon: <QrCode2Icon fontSize="small" />, label: "QRIS" },
-                  {
-                    value: "card",
-                    icon: <CreditCardIcon fontSize="small" />,
-                    label: "Kartu Debit/Kredit",
-                  },
-                ].map((opt) => (
-                  <Paper
-                    key={opt.value}
-                    variant="outlined"
-                    sx={{
-                      px: 1.5,
-                      py: 0.5,
-                      borderRadius: 2,
-                      borderColor:
-                        paymentMethod === opt.value ? "primary.main" : "divider",
-                      bgcolor:
-                        paymentMethod === opt.value ? "action.hover" : "transparent",
-                    }}
-                  >
-                    <FormControlLabel
-                      value={opt.value}
-                      control={<Radio size="small" />}
-                      label={
-                        <Stack
-                          direction="row"
-                          spacing={0.5}
-                          sx={{ alignItems: "center" }}
-                        >
-                          {opt.icon}
-                          <Typography variant="body2">{opt.label}</Typography>
-                        </Stack>
-                      }
-                    />
-                  </Paper>
-                ))}
-              </RadioGroup>
-            </Box>
-
-            {/* Cash calculations */}
-            {paymentMethod === "cash" && (
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                <TextField
-                  fullWidth
-                  label="Uang Tunai Diterima (Rp)"
-                  type="number"
-                  value={cashReceived}
-                  onChange={(e) => setCashReceived(e.target.value)}
-                  size="small"
-                  error={!isCashSufficient}
-                  helperText={
-                    !isCashSufficient
-                      ? "Nominal uang diterima kurang dari total belanja"
-                      : ""
-                  }
-                />
-
-                {/* Quick amount chips */}
-                <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-                  {[
-                    totalPrice,
-                    Math.ceil(totalPrice / 10000) * 10000,
-                    50000,
-                    100000,
-                    200000,
-                  ]
-                    .filter(
-                      (val, idx, arr) => val >= totalPrice && arr.indexOf(val) === idx
-                    )
-                    .map((val) => (
-                      <Chip
-                        key={val}
-                        label={`Rp${val.toLocaleString("id-ID")}`}
-                        onClick={() => setCashReceived(String(val))}
-                        clickable
-                        variant="outlined"
-                        size="small"
-                      />
-                    ))}
-                </Stack>
-
-                <Stack
-                  direction="row"
-                  sx={{ pt: 1, justifyContent: "space-between" }}
+              {completedTransaction?.paymentMethod !== "cash" && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 2.5,
+                    bgcolor: "success.50",
+                    border: "1px solid",
+                    borderColor: "success.light",
+                    borderRadius: 3,
+                    textAlign: "center",
+                  }}
                 >
                   <Typography variant="body2" color="text.secondary">
-                    Kembalian:
+                    Pembayaran Berhasil Diterima via{" "}
+                    {completedTransaction?.paymentMethod === "qris" ? "QRIS" : "Kartu Debit/Kredit"}
                   </Typography>
-                  <Typography
-                    variant="subtitle1"
-                    color={cashChange >= 0 ? "success.main" : "error.main"}
-                    sx={{ fontWeight: "bold" }}
-                  >
-                    Rp{cashChange >= 0 ? cashChange.toLocaleString("id-ID") : "0"}
+                  <Typography variant="h4" color="success.main" sx={{ fontWeight: "bold", mt: 0.5 }}>
+                    Rp{(completedTransaction?.totalPrice ?? 0).toLocaleString("id-ID")}
                   </Typography>
+                </Paper>
+              )}
+
+              {/* Transaction details card */}
+              <Paper variant="outlined" sx={{ p: 2, borderRadius: 2 }}>
+                <Stack spacing={1.2}>
+                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      No. Transaksi
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: "bold" }}>
+                      {completedTransaction?.transactionId}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Waktu Transaksi
+                    </Typography>
+                    <Typography variant="body2">
+                      {completedTransaction?.date}
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Total Item
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: "medium" }}>
+                      {completedTransaction?.totalQuantity} pcs
+                    </Typography>
+                  </Stack>
+                  <Stack direction="row" sx={{ justifyContent: "space-between" }}>
+                    <Typography variant="body2" color="text.secondary">
+                      Metode Pembayaran
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontWeight: "medium" }}>
+                      {completedTransaction?.paymentMethod === "cash"
+                        ? "Tunai"
+                        : completedTransaction?.paymentMethod === "qris"
+                        ? "QRIS"
+                        : "Kartu Debit/Kredit"}
+                    </Typography>
+                  </Stack>
                 </Stack>
-              </Box>
-            )}
-          </Stack>
+              </Paper>
+            </Stack>
+          )}
         </DialogContent>
 
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button
-            onClick={() => {
-              if (!createTransaction.isPending) {
-                setIsCheckoutOpen(false);
-                setErrorMessage(null);
-              }
-            }}
-            color="inherit"
-            disabled={createTransaction.isPending}
-          >
-            Batal
-          </Button>
-          <Button
-            variant="contained"
-            color="primary"
-            disabled={!isCashSufficient || createTransaction.isPending}
-            onClick={handleConfirmCheckout}
-            startIcon={
-              createTransaction.isPending ? (
-                <CircularProgress size={18} color="inherit" />
-              ) : (
-                <CheckCircleOutlineIcon />
-              )
-            }
-          >
-            {createTransaction.isPending ? "Memproses..." : "Selesaikan Transaksi"}
-          </Button>
+          {checkoutStep === "confirm" ? (
+            <Stack direction="row" spacing={1.5} sx={{ width: "100%", justifyContent: "flex-end" }}>
+              <Button
+                onClick={handleCloseCheckout}
+                color="inherit"
+                disabled={createTransaction.isPending}
+              >
+                Batal
+              </Button>
+              <Button
+                variant="contained"
+                color="primary"
+                disabled={!isCashSufficient || createTransaction.isPending}
+                onClick={handleConfirmCheckout}
+                startIcon={
+                  createTransaction.isPending ? (
+                    <CircularProgress size={18} color="inherit" />
+                  ) : (
+                    <CheckCircleOutlineIcon />
+                  )
+                }
+              >
+                {createTransaction.isPending ? "Memproses..." : "Bayar & Selesaikan"}
+              </Button>
+            </Stack>
+          ) : (
+            <Stack direction="row" sx={{ width: "100%", justifyContent: "space-between", alignItems: "center" }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                onClick={handlePrintReceipt}
+                startIcon={<PrintIcon />}
+                sx={{ borderRadius: 2 }}
+              >
+                Cetak Struk
+              </Button>
+
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={handleCloseCheckout}
+                startIcon={<CheckCircleOutlineIcon />}
+                sx={{ borderRadius: 2 }}
+              >
+                Selesai
+              </Button>
+            </Stack>
+          )}
         </DialogActions>
       </Dialog>
 
