@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Box,
   Container,
@@ -7,7 +7,6 @@ import {
   Card,
   CardMedia,
   CardContent,
-  CardActions,
   Grid,
   Pagination,
   Button,
@@ -41,116 +40,271 @@ import {
   LocalAtm as LocalAtmIcon,
   QrCode2 as QrCode2Icon,
   CreditCard as CreditCardIcon,
+  HideImageOutlined as HideImageOutlinedIcon,
 } from "@mui/icons-material";
 import TopSearchBar from "../../components/TopSearchBar";
 import { Category } from "../../types/category";
-import { CashierProduct, CartItem, SAMPLE_PRODUCTS } from "./types";
+import { Product } from "../../types/product";
+import { useProducts } from "../product/hooks";
+import { FilterMenuOptions } from "../../components/FilterMenu/constant";
+import { LoadingPage } from "../../components/Loading";
+import { ErrorPage } from "../../components/Error";
 
-const PAGE_SIZE = 6;
+// Cart item references the API Product type
+export interface CartItem {
+  product: Product;
+  quantity: number;
+}
 
-function truncate(text: string, max = 80) {
+function truncate(text?: string, max = 20) {
   if (!text) return "";
   return text.length > max ? text.slice(0, max).trimEnd() + "..." : text;
 }
 
-export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?: CashierProduct[] }) {
-  // --- Filter & Search States ---
-  const [search, setSearch] = useState("");
-  // category: null = "All" — matches TopSearchBar's Category | null interface
-  const [category, setCategory] = useState<Category | null>(null);
-  const [sortBy, setSortBy] = useState("");
-  const [draftSortBy, setDraftSortBy] = useState("");
+interface QuantityStepperProps {
+  quantity: number;
+  maxQuantity: number;
+  onUpdate: (qty: number) => void;
+  onRemove: () => void;
+  inputWidth?: string | number;
+}
 
-  const [minPrice, setMinPrice] = useState("");
-  const [maxPrice, setMaxPrice] = useState("");
-  const [draftMinPrice, setDraftMinPrice] = useState("");
-  const [draftMaxPrice, setDraftMaxPrice] = useState("");
+function QuantityStepper({
+  quantity,
+  maxQuantity,
+  onUpdate,
+  onRemove,
+  inputWidth = "38px",
+}: QuantityStepperProps) {
+  const [localVal, setLocalVal] = useState<string>(String(quantity));
 
-  const [page, setPage] = useState(1);
-  const hasActiveFilters = minPrice !== "" || maxPrice !== "" || sortBy !== "";
+  useEffect(() => {
+    setLocalVal(String(quantity));
+  }, [quantity]);
 
-  // --- Cart State ---
-  const [cart, setCart] = useState<Record<number, number>>({});
+  const isAtMax = maxQuantity > 0 && quantity >= maxQuantity;
 
-  // --- Checkout Dialog State ---
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value;
+
+    // Allow user to completely erase the field without resetting to 0 or disappearing
+    if (raw === "") {
+      setLocalVal("");
+      return;
+    }
+
+    const parsed = parseInt(raw, 10);
+    if (!isNaN(parsed)) {
+      if (parsed <= 0) {
+        setLocalVal(raw);
+        return;
+      }
+      // Cannot exceed max quantity of the product
+      const clamped = maxQuantity > 0 ? Math.min(parsed, maxQuantity) : parsed;
+      setLocalVal(String(clamped));
+      onUpdate(clamped);
+    }
+  };
+
+  const handleBlur = () => {
+    const parsed = parseInt(localVal, 10);
+    if (isNaN(parsed) || parsed <= 0) {
+      // If left empty or invalid, fallback to 1 instead of deleting or disappearing
+      setLocalVal("1");
+      onUpdate(1);
+    } else {
+      const clamped = maxQuantity > 0 ? Math.min(parsed, maxQuantity) : parsed;
+      setLocalVal(String(clamped));
+      onUpdate(clamped);
+    }
+  };
+
+  const handleDecrement = () => {
+    if (quantity <= 1) {
+      onRemove();
+    } else {
+      onUpdate(quantity - 1);
+    }
+  };
+
+  const handleIncrement = () => {
+    if (!isAtMax) {
+      onUpdate(quantity + 1);
+    }
+  };
+
+  return (
+    <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
+      <Tooltip title={quantity === 1 ? "Hapus dari keranjang" : "Kurangi kuantitas"}>
+        <span>
+          <IconButton
+            size="small"
+            color={quantity === 1 ? "error" : "primary"}
+            onClick={handleDecrement}
+            aria-label={quantity === 1 ? "Hapus dari keranjang" : "Kurangi kuantitas"}
+            sx={{
+              border: "1px solid",
+              borderColor: quantity === 1 ? "error.light" : "divider",
+              borderRadius: 1.5,
+              p: 0.4,
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "action.hover" },
+            }}
+          >
+            {quantity === 1 ? (
+              <DeleteOutlineIcon sx={{ fontSize: 16 }} />
+            ) : (
+              <RemoveIcon sx={{ fontSize: 16 }} />
+            )}
+          </IconButton>
+        </span>
+      </Tooltip>
+
+      <TextField
+        size="small"
+        type="number"
+        value={localVal}
+        onChange={handleInputChange}
+        onBlur={handleBlur}
+        slotProps={{
+          htmlInput: {
+            min: 1,
+            max: maxQuantity > 0 ? maxQuantity : undefined,
+            style: {
+              textAlign: "center",
+              padding: "4px 2px",
+              width: inputWidth,
+              fontSize: "0.875rem",
+              fontWeight: "bold",
+            },
+          },
+        }}
+        sx={{
+          "& .MuiOutlinedInput-root": {
+            borderRadius: 1.5,
+            bgcolor: "background.paper",
+          },
+        }}
+      />
+
+      <Tooltip title={isAtMax ? "Kuantitas maksimal tercapai" : "Tambah kuantitas"}>
+        <span>
+          <IconButton
+            size="small"
+            color="primary"
+            onClick={handleIncrement}
+            disabled={isAtMax}
+            aria-label="Tambah kuantitas"
+            sx={{
+              border: "1px solid",
+              borderColor: "divider",
+              borderRadius: 1.5,
+              p: 0.4,
+              bgcolor: "background.paper",
+              "&:hover": { bgcolor: "action.hover" },
+              "&.Mui-disabled": {
+                opacity: 0.4,
+                borderColor: "divider",
+              },
+            }}
+          >
+            <AddIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </span>
+      </Tooltip>
+    </Stack>
+  );
+}
+
+export default function CashierPage() {
+  // ─── API data via shared hook (same endpoint as ProductPage) ───────────────
+  const {
+    data,
+    isLoading,
+    error,
+    totalPages,
+    currentPage,
+    setCurrentPage,
+    category,
+    setCategory,
+    sort,
+    setSort,
+    minPrice,
+    setMinPrice,
+    maxPrice,
+    setMaxPrice,
+    search,
+    setSearch,
+    refetch,
+    isRefetching,
+  } = useProducts();
+
+  // Draft filter state (applied on "Apply" click, same pattern as ProductPage)
+  const [draftSortBy, setDraftSortBy] = useState<string>("");
+  const [draftMinPrice, setDraftMinPrice] = useState<string>("");
+  const [draftMaxPrice, setDraftMaxPrice] = useState<string>("");
+
+  const hasActiveFilters = Boolean(minPrice !== "" || maxPrice !== "" || sort !== null);
+
+  // ─── Cart state (keyed by product id string, matching API Product.id type) ─
+  const [cart, setCart] = useState<Record<string, number>>({});
+
+  // ─── Checkout dialog state ─────────────────────────────────────────────────
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [cashReceived, setCashReceived] = useState("");
   const [successSnackbar, setSuccessSnackbar] = useState(false);
 
-  // --- Filter & Sort Logic ---
-  const filtered = useMemo(() => {
-    let result = products.filter((p) => {
-      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-      // category.name matches the string-based category field on CashierProduct
-      const matchesCategory = category === null || p.category === category.name;
-      const matchesMin = minPrice === "" || p.price >= Number(minPrice);
-      const matchesMax = maxPrice === "" || p.price <= Number(maxPrice);
-      return matchesSearch && matchesCategory && matchesMin && matchesMax;
-    });
-
-    switch (sortBy) {
-      case "name-asc":
-        result.sort((a, b) => a.name.localeCompare(b.name));
-        break;
-      case "name-desc":
-        result.sort((a, b) => b.name.localeCompare(a.name));
-        break;
-      case "price-asc":
-        result.sort((a, b) => a.price - b.price);
-        break;
-      case "price-desc":
-        result.sort((a, b) => b.price - a.price);
-        break;
-      default:
-        break;
-    }
-    return result;
-  }, [products, search, category, sortBy, minPrice, maxPrice]);
-
-  const pageCount = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
-  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
-  // --- Cart Items & Totals ---
+  // ─── Cart derived values ───────────────────────────────────────────────────
   const cartItems: CartItem[] = useMemo(() => {
     return Object.entries(cart)
-      .map(([idStr, qty]) => {
-        const product = products.find((p) => p.id === Number(idStr));
+      .map(([id, qty]) => {
+        const product = data.find((p) => p.id === id);
         if (!product || qty <= 0) return null;
         return { product, quantity: qty };
       })
       .filter((item): item is CartItem => item !== null);
-  }, [cart, products]);
+  }, [cart, data]);
 
-  const totalQuantity = useMemo(() => {
-    return cartItems.reduce((acc, item) => acc + item.quantity, 0);
-  }, [cartItems]);
+  const totalQuantity = useMemo(
+    () => cartItems.reduce((acc, item) => acc + item.quantity, 0),
+    [cartItems]
+  );
 
-  const totalPrice = useMemo(() => {
-    return cartItems.reduce((acc, item) => acc + item.quantity * item.product.price, 0);
-  }, [cartItems]);
+  // Use max_price as unit price (fallback to min_price)
+  const totalPrice = useMemo(
+    () =>
+      cartItems.reduce(
+        (acc, item) =>
+          acc + item.quantity * (item.product.max_price ?? item.product.min_price ?? 0),
+        0
+      ),
+    [cartItems]
+  );
 
-  // --- Cart Actions ---
-  const handleAddToCart = (productId: number) => {
-    setCart((prev) => ({
-      ...prev,
-      [productId]: 1,
-    }));
+  // ─── Cart actions ──────────────────────────────────────────────────────────
+  const handleAddToCart = (productId: string) => {
+    const product = data.find((p) => p.id === productId);
+    const maxQty = product?.quantity ?? Infinity;
+    if (maxQty <= 0) return;
+    setCart((prev) => ({ ...prev, [productId]: 1 }));
   };
 
-  const handleUpdateQuantity = (productId: number, quantity: number) => {
+  const handleUpdateQuantity = (productId: string, quantity: number) => {
+    const product = data.find((p) => p.id === productId);
+    const maxQty = product?.quantity ?? Infinity;
     setCart((prev) => {
       const next = { ...prev };
       if (quantity <= 0) {
         delete next[productId];
       } else {
-        next[productId] = quantity;
+        next[productId] = maxQty > 0 ? Math.min(quantity, maxQty) : quantity;
       }
       return next;
     });
   };
 
-  const handleRemoveFromCart = (productId: number) => {
+  const handleRemoveFromCart = (productId: string) => {
     setCart((prev) => {
       const next = { ...prev };
       delete next[productId];
@@ -158,45 +312,42 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
     });
   };
 
-  const handleClearCart = () => {
-    setCart({});
-  };
+  const handleClearCart = () => setCart({});
 
-  // --- Filter Handlers ---
-  // onCategoryChange matches TopSearchBar's (cat: Category | null) => void signature
+  // ─── Filter / search handlers ──────────────────────────────────────────────
   const handleCategoryClick = (cat: Category | null) => {
     setCategory(cat);
-    setPage(1);
+    setCurrentPage(1);
   };
 
-  // onApplyFilters matches TopSearchBar's (category: Category | null) => void signature
-  const handleApplyFilters = (_cat?: Category | null) => {
-    setSortBy(draftSortBy);
+  const handleApplyFilters = (cat?: Category | null) => {
+    const selectedOption = FilterMenuOptions.find((opt) => opt.key === draftSortBy);
+    setSort(selectedOption ? { sortBy: selectedOption.field, order: selectedOption.order } : null);
     setMinPrice(draftMinPrice);
     setMaxPrice(draftMaxPrice);
-    setPage(1);
+    if (cat !== undefined) setCategory(cat);
+    setCurrentPage(1);
   };
 
   const handleClearFilters = () => {
     setCategory(null);
-    setSortBy("");
+    setSort(null);
     setDraftSortBy("");
     setMinPrice("");
     setMaxPrice("");
     setDraftMinPrice("");
     setDraftMaxPrice("");
-    setPage(1);
+    setCurrentPage(1);
   };
 
-  // onSearchChange matches TopSearchBar's (searchTerm: string) => void signature
   const handleSearchChange = (searchTerm: string) => {
     setSearch(searchTerm);
-    setPage(1);
+    setCurrentPage(1);
   };
 
-  // --- Checkout Handlers ---
+  // ─── Checkout handlers ─────────────────────────────────────────────────────
   const handleOpenCheckout = () => {
-    setCashReceived(totalPrice.toFixed(2));
+    setCashReceived(totalPrice.toLocaleString("id-ID"));
     setIsCheckoutOpen(true);
   };
 
@@ -206,21 +357,28 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
     setCart({});
   };
 
-  const cashChange = Number(cashReceived) - totalPrice;
-  const isCashSufficient = paymentMethod !== "cash" || (!isNaN(Number(cashReceived)) && cashChange >= 0);
+  const cashChange = Number(cashReceived.replace(/\./g, "").replace(",", ".")) - totalPrice;
+  const isCashSufficient =
+    paymentMethod !== "cash" || (!isNaN(cashChange) && cashChange >= 0);
+
+  // ─── Early returns ─────────────────────────────────────────────────────────
+  if (error) {
+    return <ErrorPage onRetry={refetch} isRetrying={isRefetching} fullScreen={false} />;
+  }
 
   return (
     <Container maxWidth={false} sx={{ py: 3, px: { xs: 2, sm: 3, md: 4 } }}>
       <Grid container spacing={3}>
-        {/* =========================================
-            LEFT SIDE: Product Catalog (Kasir Menu)
-            ========================================= */}
+        {/* =====================================================================
+            LEFT SIDE: Product Catalog
+            ===================================================================== */}
         <Grid size={{ xs: 12, lg: 8 }}>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
-            {/* Top Search & Filter Bar */}
+
+            {/* Search & Filter Bar */}
             <TopSearchBar
-              title="Produk"
-              description="Cari dan telusuri produk"
+              title="Kasir"
+              description="Pilih produk dan tambahkan ke keranjang"
               search={search}
               onSearchChange={handleSearchChange}
               hasActiveFilters={hasActiveFilters}
@@ -236,202 +394,177 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
               onCategoryChange={handleCategoryClick}
             />
 
-            {/* Product Cards Grid */}
-            <Grid container spacing={2.5}>
-              {paginated.map((product) => {
-                const currentQty = cart[product.id] || 0;
-                const isInCart = currentQty > 0;
+            {/* Product Grid */}
+            {isLoading ? (
+              <LoadingPage fullScreen={false} />
+            ) : (
+              <>
+                <Grid container spacing={2.5}>
+                  {data.map((product) => {
+                    const currentQty = cart[product.id] || 0;
+                    const isInCart = currentQty > 0;
+                    const maxStock = product.quantity ?? Infinity;
+                    const isOutOfStock = typeof product.quantity === "number" && product.quantity <= 0;
 
-                return (
-                  <Grid size={{ xs: 12, sm: 6, md: 4 }} key={product.id}>
-                    <Card
-                      variant="outlined"
-                      sx={{
-                        height: "100%",
-                        display: "flex",
-                        flexDirection: "column",
-                        borderRadius: 2.5,
-                        borderColor: isInCart ? "primary.main" : "divider",
-                        borderWidth: isInCart ? "2px" : "1px",
-                        boxShadow: isInCart ? "0 4px 12px rgba(25, 118, 210, 0.12)" : "none",
-                        transition: "all 0.2s ease-in-out",
-                        "&:hover": {
-                          borderColor: "primary.main",
-                          boxShadow: "0 6px 16px rgba(0,0,0,0.08)",
-                        },
-                      }}
-                    >
-                      <Box sx={{ position: "relative" }}>
-                        <CardMedia
-                          component="img"
-                          height="150"
-                          image={product.image}
-                          alt={product.name}
-                          sx={{ objectFit: "cover" }}
-                        />
-                        {isInCart && (
-                          <Chip
-                            label={`${currentQty} di keranjang`}
-                            color="primary"
-                            size="small"
-                            sx={{
-                              position: "absolute",
-                              top: 8,
-                              right: 8,
-                              fontWeight: "bold",
-                            }}
-                          />
-                        )}
-                      </Box>
+                    return (
+                      <Grid size={{ xs: 12, sm: 6, md: 4 }} key={product.id}>
+                        {/* Card matches product page exactly: plain outlined, no custom border/shadow */}
+                        <Card variant="outlined" sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
 
-                      <CardContent sx={{ flexGrow: 1, pb: 1 }}>
-                        <Stack
-                          direction="row"
-                          sx={{ mb: 1, justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}
-                        >
-                          <Typography variant="subtitle1" sx={{ fontWeight: "bold", lineHeight: 1.2 }}>
-                            {product.name}
-                          </Typography>
-                          <Chip label={product.category} size="small" color="secondary" variant="outlined" />
-                        </Stack>
-                        <Typography variant="h6" color="primary" sx={{ mb: 1, fontWeight: "bold" }}>
-                          Rp{product.price.toLocaleString("id-ID")}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {truncate(product.description, 70)}
-                        </Typography>
-                      </CardContent>
+                          {/* Image — 180px, with no-image fallback + in-cart badge overlay */}
+                          {product.image ? (
+                            <CardMedia
+                              component="img"
+                              height="180"
+                              image={product.image}
+                              alt={product.name}
+                              sx={{ objectFit: "cover" }}
+                            />
+                          ) : (
+                            <Box
+                              sx={{
+                                height: 180,
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                bgcolor: "grey.100",
+                                color: "text.secondary",
+                              }}
+                            >
+                              <HideImageOutlinedIcon sx={{ fontSize: 40 }} />
+                            </Box>
+                          )}
 
-                      {/* Card Action: Add To Cart button / Quantity Input Field */}
-                      <CardActions sx={{ p: 2, pt: 0 }}>
-                        {!isInCart ? (
-                          <Button
-                            fullWidth
-                            variant="contained"
-                            color="primary"
-                            startIcon={<AddShoppingCartIcon />}
-                            onClick={() => handleAddToCart(product.id)}
-                            sx={{
-                              textTransform: "none",
-                              borderRadius: 2,
-                              fontWeight: "bold",
-                              py: 0.9,
-                            }}
-                          >
-                            Tambah ke Keranjang
-                          </Button>
-                        ) : (
-                          <Box sx={{ width: "100%" }}>
-                            <Typography variant="caption" sx={{ color: "text.secondary", mb: 0.5, display: "block" }}>
-                              Jumlah untuk Checkout:
+                          {/* Content — order exactly as product page: chip → name → description → price row */}
+                          <CardContent sx={{ flexGrow: 1 }}>
+                            {/* Category */}
+                            <Chip
+                              label={product.category?.name || "Uncategorized"}
+                              size="small"
+                              color="secondary"
+                              variant="outlined"
+                            />
+
+                            {/* Name */}
+                            <Typography variant="h6" sx={{ fontWeight: "bold", mt: 0.5 }}>
+                              {truncate(product.name)}
                             </Typography>
-                            <Stack direction="row" spacing={1} sx={{ alignItems: "center", width: "100%" }}>
-                              {/* Minus / Delete button — shows delete icon when qty=1 */}
-                              <IconButton
-                                size="small"
-                                color={currentQty === 1 ? "error" : "primary"}
-                                onClick={() => handleUpdateQuantity(product.id, currentQty - 1)}
-                                sx={{
-                                  border: "1px solid",
-                                  borderColor: currentQty === 1 ? "error.light" : "divider",
-                                  borderRadius: 1.5,
-                                  bgcolor: "background.paper",
-                                  "&:hover": { bgcolor: "action.hover" },
-                                }}
-                                aria-label={currentQty === 1 ? "Hapus dari keranjang" : "Kurangi kuantitas"}
-                              >
-                                {currentQty === 1 ? (
-                                  <DeleteOutlineIcon fontSize="small" />
-                                ) : (
-                                  <RemoveIcon fontSize="small" />
-                                )}
-                              </IconButton>
 
-                              <TextField
-                                size="small"
-                                type="number"
-                                value={currentQty}
-                                onChange={(e) => {
-                                  const val = parseInt(e.target.value, 10);
-                                  handleUpdateQuantity(product.id, isNaN(val) ? 0 : Math.max(0, val));
-                                }}
-                                slotProps={{
-                                  htmlInput: {
-                                    min: 0,
-                                    style: {
-                                      textAlign: "center",
-                                      padding: "6px 4px",
-                                      fontWeight: "bold",
-                                      fontSize: "0.95rem",
-                                    },
-                                  },
-                                }}
-                                sx={{
-                                  flex: 1,
-                                  "& .MuiOutlinedInput-root": {
-                                    borderRadius: 1.5,
-                                    bgcolor: "background.paper",
-                                  },
-                                }}
-                              />
+                            {/* Description — 2-line clamp */}
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                              sx={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                                lineHeight: 1.5,
+                                height: "3em",
+                                mt: 0.5,
+                              }}
+                            >
+                              {product.description || "–"}
+                            </Typography>
 
-                              {/* Plus button */}
-                              <IconButton
-                                size="small"
-                                color="primary"
-                                onClick={() => handleUpdateQuantity(product.id, currentQty + 1)}
-                                sx={{
-                                  border: "1px solid",
-                                  borderColor: "divider",
-                                  borderRadius: 1.5,
-                                  bgcolor: "background.paper",
-                                  "&:hover": { bgcolor: "action.hover" },
-                                }}
-                                aria-label="Tambah kuantitas"
-                              >
-                                <AddIcon fontSize="small" />
-                              </IconButton>
+                            {/* Price row: max_price on left, cart control on right */}
+                            <Stack
+                              direction="row"
+                              sx={{
+                                mt: 1.5,
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Typography variant="body1" color="primary">
+                                Rp
+                                {product.max_price != null
+                                  ? product.max_price.toLocaleString("id-ID")
+                                  : "0"}
+                              </Typography>
+
+                              {/* Right side: add button OR compact stepper */}
+                              {!isInCart ? (
+                                <Tooltip title={isOutOfStock ? "Stok habis" : "Tambah ke Keranjang"}>
+                                  <span>
+                                    <IconButton
+                                      size="small"
+                                      color="primary"
+                                      onClick={() => handleAddToCart(product.id)}
+                                      disabled={isOutOfStock}
+                                      aria-label={isOutOfStock ? "Stok habis" : "Tambah ke Keranjang"}
+                                      sx={{
+                                        border: "1px solid",
+                                        borderColor: "primary.main",
+                                        borderRadius: 1.5,
+                                        "&.Mui-disabled": {
+                                          opacity: 0.4,
+                                          borderColor: "divider",
+                                        },
+                                      }}
+                                    >
+                                      <AddShoppingCartIcon fontSize="small" />
+                                    </IconButton>
+                                  </span>
+                                </Tooltip>
+                              ) : (
+                                <QuantityStepper
+                                  quantity={currentQty}
+                                  maxQuantity={maxStock}
+                                  onUpdate={(qty) => handleUpdateQuantity(product.id, qty)}
+                                  onRemove={() => handleRemoveFromCart(product.id)}
+                                  inputWidth="38px"
+                                />
+                              )}
                             </Stack>
-                          </Box>
-                        )}
-                      </CardActions>
-                    </Card>
-                  </Grid>
-                );
-              })}
+                          </CardContent>
+                        </Card>
+                      </Grid>
+                    );
+                  })}
 
-              {paginated.length === 0 && (
-                <Grid size={{ xs: 12 }}>
-                  <Paper variant="outlined" sx={{ p: 6, textAlign: "center", borderRadius: 3 }}>
-                    <Typography variant="body1" color="text.secondary">
-                      Tidak ada produk yang cocok dengan pencarian / filter Anda.
-                    </Typography>
-                    <Button variant="text" color="primary" onClick={handleClearFilters} sx={{ mt: 1 }}>
-                      Reset Filter
-                    </Button>
-                  </Paper>
+                  {data.length === 0 && (
+                    <Grid size={{ xs: 12 }}>
+                      <Paper
+                        variant="outlined"
+                        sx={{ p: 6, textAlign: "center", borderRadius: 3 }}
+                      >
+                        <Typography variant="body1" color="text.secondary">
+                          Tidak ada produk yang cocok dengan pencarian / filter Anda.
+                        </Typography>
+                        <Button
+                          variant="text"
+                          color="primary"
+                          onClick={handleClearFilters}
+                          sx={{ mt: 1 }}
+                        >
+                          Reset Filter
+                        </Button>
+                      </Paper>
+                    </Grid>
+                  )}
                 </Grid>
-              )}
-            </Grid>
 
-            {/* Pagination */}
-            {filtered.length > 0 && (
-              <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
-                <Pagination
-                  count={pageCount}
-                  page={page}
-                  onChange={(_, value) => setPage(value)}
-                  color="primary"
-                  shape="rounded"
-                />
-              </Box>
+                {/* Pagination */}
+                {totalPages > 0 && (
+                  <Box sx={{ mt: 2, display: "flex", justifyContent: "center" }}>
+                    <Pagination
+                      count={totalPages}
+                      page={currentPage}
+                      onChange={(_, value) => setCurrentPage(value)}
+                      color="primary"
+                      shape="rounded"
+                    />
+                  </Box>
+                )}
+              </>
             )}
           </Box>
         </Grid>
 
-        {/* =========================================
+        {/* =====================================================================
             RIGHT SIDE: Cart / Order Summary
-            ========================================= */}
+            ===================================================================== */}
         <Grid size={{ xs: 12, lg: 4 }}>
           <Paper
             variant="outlined"
@@ -466,7 +599,12 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
 
               {cartItems.length > 0 && (
                 <Stack direction="row" spacing={1} sx={{ alignItems: "center" }}>
-                  <Chip label={`${totalQuantity} item`} size="small" color="primary" variant="filled" />
+                  <Chip
+                    label={`${totalQuantity} item`}
+                    size="small"
+                    color="primary"
+                    variant="filled"
+                  />
                   <Tooltip title="Kosongkan keranjang">
                     <IconButton size="small" color="error" onClick={handleClearCart}>
                       <RestartAltIcon fontSize="small" />
@@ -476,7 +614,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
               )}
             </Box>
 
-            {/* List of Selected Items */}
+            {/* Cart Item List */}
             <Box
               sx={{
                 py: 2,
@@ -499,17 +637,24 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                     color: "text.secondary",
                   }}
                 >
-                  <ShoppingCartOutlinedIcon sx={{ fontSize: 56, mb: 1.5, color: "text.disabled" }} />
+                  <ShoppingCartOutlinedIcon
+                    sx={{ fontSize: 56, mb: 1.5, color: "text.disabled" }}
+                  />
                   <Typography variant="subtitle1" sx={{ fontWeight: "medium" }}>
                     Keranjang Masih Kosong
                   </Typography>
-                  <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 220, mt: 0.5, textAlign: "center" }}>
-                    Pilih produk di sebelah kiri dan klik tombol "Tambah ke Keranjang" untuk memulai.
+                  <Typography
+                    variant="caption"
+                    color="text.secondary"
+                    sx={{ maxWidth: 220, mt: 0.5, textAlign: "center" }}
+                  >
+                    Pilih produk di sebelah kiri dan klik "Tambah ke Keranjang" untuk memulai.
                   </Typography>
                 </Box>
               ) : (
                 cartItems.map((item) => {
-                  const itemTotal = item.quantity * item.product.price;
+                  const unitPrice = item.product.max_price ?? item.product.min_price ?? 0;
+                  const itemTotal = item.quantity * unitPrice;
 
                   return (
                     <Box
@@ -524,12 +669,10 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                         flexDirection: "column",
                         gap: 1,
                         transition: "background-color 0.2s",
-                        "&:hover": {
-                          bgcolor: "action.hover",
-                        },
+                        "&:hover": { bgcolor: "action.hover" },
                       }}
                     >
-                      {/* Product Info Row */}
+                      {/* Product info row */}
                       <Stack direction="row" spacing={1.5} sx={{ alignItems: "center" }}>
                         <Avatar
                           src={item.product.image}
@@ -538,11 +681,15 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                           sx={{ width: 44, height: 44 }}
                         />
                         <Box sx={{ flex: 1, minWidth: 0 }}>
-                          <Typography variant="subtitle2" noWrap sx={{ fontWeight: "bold" }}>
+                          <Typography
+                            variant="subtitle2"
+                            noWrap
+                            sx={{ fontWeight: "bold" }}
+                          >
                             {item.product.name}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            Rp{item.product.price.toLocaleString("id-ID")} / pcs
+                            Rp{unitPrice.toLocaleString("id-ID")} / pcs
                           </Typography>
                         </Box>
 
@@ -558,72 +705,29 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                         </Tooltip>
                       </Stack>
 
-                      {/* Quantity Controls & Item Total Row */}
-                      <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-                        {/* Quantity Stepper & Field */}
-                        <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleUpdateQuantity(item.product.id, item.quantity - 1)}
-                            sx={{
-                              border: "1px solid",
-                              borderColor: "divider",
-                              bgcolor: "background.paper",
-                              p: 0.4,
-                            }}
-                          >
-                            <RemoveIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
+                      {/* Quantity controls & item total */}
+                      <Stack
+                        direction="row"
+                        sx={{ justifyContent: "space-between", alignItems: "center" }}
+                      >
+                        <QuantityStepper
+                          quantity={item.quantity}
+                          maxQuantity={item.product.quantity ?? Infinity}
+                          onUpdate={(qty) => handleUpdateQuantity(item.product.id, qty)}
+                          onRemove={() => handleRemoveFromCart(item.product.id)}
+                          inputWidth="42px"
+                        />
 
-                          <TextField
-                            size="small"
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              handleUpdateQuantity(item.product.id, isNaN(val) ? 0 : Math.max(0, val));
-                            }}
-                            slotProps={{
-                              htmlInput: {
-                                min: 1,
-                                style: {
-                                  textAlign: "center",
-                                  padding: "4px 2px",
-                                  width: "42px",
-                                  fontSize: "0.875rem",
-                                  fontWeight: "bold",
-                                },
-                              },
-                            }}
-                            sx={{
-                              "& .MuiOutlinedInput-root": {
-                                borderRadius: 1,
-                                bgcolor: "background.paper",
-                              },
-                            }}
-                          />
-
-                          <IconButton
-                            size="small"
-                            onClick={() => handleUpdateQuantity(item.product.id, item.quantity + 1)}
-                            sx={{
-                              border: "1px solid",
-                              borderColor: "divider",
-                              bgcolor: "background.paper",
-                              p: 0.4,
-                            }}
-                          >
-                            <AddIcon sx={{ fontSize: 16 }} />
-                          </IconButton>
-                        </Stack>
-
-                        {/* Total price for each item */}
                         <Box sx={{ textAlign: "right" }}>
-                          <Typography variant="subtitle2" color="primary" sx={{ fontWeight: "bold" }}>
+                          <Typography
+                            variant="subtitle2"
+                            color="primary"
+                            sx={{ fontWeight: "bold" }}
+                          >
                             Rp{itemTotal.toLocaleString("id-ID")}
                           </Typography>
                           <Typography variant="caption" color="text.secondary">
-                            {item.quantity} × Rp{item.product.price.toLocaleString("id-ID")}
+                            {item.quantity} × Rp{unitPrice.toLocaleString("id-ID")}
                           </Typography>
                         </Box>
                       </Stack>
@@ -633,7 +737,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
               )}
             </Box>
 
-            {/* Cart Footer: Summary & Checkout Button */}
+            {/* Cart Footer */}
             <Divider sx={{ my: 1.5 }} />
 
             <Stack spacing={1.2}>
@@ -657,7 +761,10 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
 
               <Divider sx={{ my: 0.5 }} />
 
-              <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+              <Stack
+                direction="row"
+                sx={{ justifyContent: "space-between", alignItems: "center" }}
+              >
                 <Typography variant="subtitle1" sx={{ fontWeight: "bold" }}>
                   Total Belanja
                 </Typography>
@@ -690,9 +797,9 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
         </Grid>
       </Grid>
 
-      {/* =========================================
-          CHECKOUT CONFIRMATION MODAL
-          ========================================= */}
+      {/* ======================================================================
+          CHECKOUT CONFIRMATION DIALOG
+          ====================================================================== */}
       <Dialog
         open={isCheckoutOpen}
         onClose={() => setIsCheckoutOpen(false)}
@@ -700,36 +807,50 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
         fullWidth
         slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
       >
-        <DialogTitle sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}>
+        <DialogTitle
+          sx={{ fontWeight: "bold", display: "flex", alignItems: "center", gap: 1 }}
+        >
           <PaymentIcon color="primary" />
           Konfirmasi Pembayaran
         </DialogTitle>
+
         <DialogContent dividers>
           <Stack spacing={2.5}>
-            {/* Order Items Review */}
+            {/* Order summary */}
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Ringkasan Pesanan ({totalQuantity} item)
               </Typography>
-              <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, maxHeight: 160, overflowY: "auto" }}>
+              <Paper
+                variant="outlined"
+                sx={{ p: 1.5, borderRadius: 2, maxHeight: 160, overflowY: "auto" }}
+              >
                 {cartItems.map((item) => (
                   <Stack
                     key={item.product.id}
                     direction="row"
-                    sx={{ py: 0.5, justifyContent: "space-between", alignItems: "center" }}
+                    sx={{
+                      py: 0.5,
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
                   >
                     <Typography variant="body2">
                       {item.product.name} <b>× {item.quantity}</b>
                     </Typography>
                     <Typography variant="body2" sx={{ fontWeight: "medium" }}>
-                      Rp{(item.quantity * item.product.price).toLocaleString("id-ID")}
+                      Rp
+                      {(
+                        item.quantity *
+                        (item.product.max_price ?? item.product.min_price ?? 0)
+                      ).toLocaleString("id-ID")}
                     </Typography>
                   </Stack>
                 ))}
               </Paper>
             </Box>
 
-            {/* Total */}
+            {/* Total bill */}
             <Stack
               direction="row"
               sx={{
@@ -749,7 +870,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
               </Typography>
             </Stack>
 
-            {/* Payment Method Selector */}
+            {/* Payment method */}
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
                 Metode Pembayaran
@@ -760,75 +881,48 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                 onChange={(e) => setPaymentMethod(e.target.value)}
                 sx={{ gap: 1 }}
               >
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: 2,
-                    borderColor: paymentMethod === "cash" ? "primary.main" : "divider",
-                    bgcolor: paymentMethod === "cash" ? "action.hover" : "transparent",
-                  }}
-                >
-                  <FormControlLabel
-                    value="cash"
-                    control={<Radio size="small" />}
-                    label={
-                      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                        <LocalAtmIcon fontSize="small" />
-                        <Typography variant="body2">Tunai</Typography>
-                      </Stack>
-                    }
-                  />
-                </Paper>
-
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: 2,
-                    borderColor: paymentMethod === "qris" ? "primary.main" : "divider",
-                    bgcolor: paymentMethod === "qris" ? "action.hover" : "transparent",
-                  }}
-                >
-                  <FormControlLabel
-                    value="qris"
-                    control={<Radio size="small" />}
-                    label={
-                      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                        <QrCode2Icon fontSize="small" />
-                        <Typography variant="body2">QRIS</Typography>
-                      </Stack>
-                    }
-                  />
-                </Paper>
-
-                <Paper
-                  variant="outlined"
-                  sx={{
-                    px: 1.5,
-                    py: 0.5,
-                    borderRadius: 2,
-                    borderColor: paymentMethod === "card" ? "primary.main" : "divider",
-                    bgcolor: paymentMethod === "card" ? "action.hover" : "transparent",
-                  }}
-                >
-                  <FormControlLabel
-                    value="card"
-                    control={<Radio size="small" />}
-                    label={
-                      <Stack direction="row" spacing={0.5} sx={{ alignItems: "center" }}>
-                        <CreditCardIcon fontSize="small" />
-                        <Typography variant="body2">Kartu Debit/Kredit</Typography>
-                      </Stack>
-                    }
-                  />
-                </Paper>
+                {[
+                  { value: "cash", icon: <LocalAtmIcon fontSize="small" />, label: "Tunai" },
+                  { value: "qris", icon: <QrCode2Icon fontSize="small" />, label: "QRIS" },
+                  {
+                    value: "card",
+                    icon: <CreditCardIcon fontSize="small" />,
+                    label: "Kartu Debit/Kredit",
+                  },
+                ].map((opt) => (
+                  <Paper
+                    key={opt.value}
+                    variant="outlined"
+                    sx={{
+                      px: 1.5,
+                      py: 0.5,
+                      borderRadius: 2,
+                      borderColor:
+                        paymentMethod === opt.value ? "primary.main" : "divider",
+                      bgcolor:
+                        paymentMethod === opt.value ? "action.hover" : "transparent",
+                    }}
+                  >
+                    <FormControlLabel
+                      value={opt.value}
+                      control={<Radio size="small" />}
+                      label={
+                        <Stack
+                          direction="row"
+                          spacing={0.5}
+                          sx={{ alignItems: "center" }}
+                        >
+                          {opt.icon}
+                          <Typography variant="body2">{opt.label}</Typography>
+                        </Stack>
+                      }
+                    />
+                  </Paper>
+                ))}
               </RadioGroup>
             </Box>
 
-            {/* Cash Payment Calculations */}
+            {/* Cash calculations */}
             {paymentMethod === "cash" && (
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                 <TextField
@@ -839,18 +933,30 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                   onChange={(e) => setCashReceived(e.target.value)}
                   size="small"
                   error={!isCashSufficient}
-                  helperText={!isCashSufficient ? "Nominal uang diterima kurang dari total belanja" : ""}
+                  helperText={
+                    !isCashSufficient
+                      ? "Nominal uang diterima kurang dari total belanja"
+                      : ""
+                  }
                 />
 
-                {/* Quick Cash Buttons */}
+                {/* Quick amount chips */}
                 <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", rowGap: 1 }}>
-                  {[totalPrice, Math.ceil(totalPrice / 5000) * 5000, 50000, 100000, 200000]
-                    .filter((val, idx, arr) => val >= totalPrice && arr.indexOf(val) === idx)
+                  {[
+                    totalPrice,
+                    Math.ceil(totalPrice / 10000) * 10000,
+                    50000,
+                    100000,
+                    200000,
+                  ]
+                    .filter(
+                      (val, idx, arr) => val >= totalPrice && arr.indexOf(val) === idx
+                    )
                     .map((val) => (
                       <Chip
                         key={val}
                         label={`Rp${val.toLocaleString("id-ID")}`}
-                        onClick={() => setCashReceived(val.toString())}
+                        onClick={() => setCashReceived(String(val))}
                         clickable
                         variant="outlined"
                         size="small"
@@ -858,7 +964,10 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
                     ))}
                 </Stack>
 
-                <Stack direction="row" sx={{ pt: 1, justifyContent: "space-between" }}>
+                <Stack
+                  direction="row"
+                  sx={{ pt: 1, justifyContent: "space-between" }}
+                >
                   <Typography variant="body2" color="text.secondary">
                     Kembalian:
                   </Typography>
@@ -874,6 +983,7 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
             )}
           </Stack>
         </DialogContent>
+
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button onClick={() => setIsCheckoutOpen(false)} color="inherit">
             Batal
@@ -890,14 +1000,18 @@ export default function CashierPage({ products = SAMPLE_PRODUCTS }: { products?:
         </DialogActions>
       </Dialog>
 
-      {/* Success Notification Snackbar */}
+      {/* Success snackbar */}
       <Snackbar
         open={successSnackbar}
         autoHideDuration={4000}
         onClose={() => setSuccessSnackbar(false)}
         anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
       >
-        <Alert onClose={() => setSuccessSnackbar(false)} severity="success" sx={{ width: "100%", borderRadius: 2 }}>
+        <Alert
+          onClose={() => setSuccessSnackbar(false)}
+          severity="success"
+          sx={{ width: "100%", borderRadius: 2 }}
+        >
           Transaksi berhasil diselesaikan!
         </Alert>
       </Snackbar>

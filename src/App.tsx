@@ -1,7 +1,6 @@
 import {
   Box,
   CssBaseline,
-  Typography,
   ThemeProvider,
   createTheme,
 } from '@mui/material';
