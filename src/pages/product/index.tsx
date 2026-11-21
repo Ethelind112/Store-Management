@@ -9,6 +9,7 @@ import {
   CardContent,
   Grid,
   Pagination,
+  Stack,
 } from "@mui/material";
 import TopSearchBar from "../../components/TopSearchBar";
 import { useProducts } from "./hooks";
@@ -142,7 +143,16 @@ export default function ProductPage() {
                     </Box>
                   )}
                   <CardContent sx={{ flexGrow: 1 }}>
-                    <Chip label={product.category.name || "Uncategorized"} size="small" color="secondary" variant="outlined" />
+                    <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+                      <Chip label={product.category.name || "Uncategorized"} size="small" color="secondary" variant="outlined" />
+                      <Chip
+                        label={product.quantity <= 0 ? "Habis" : `Stok: ${product.quantity}`}
+                        size="small"
+                        variant="outlined"
+                        color={product.quantity <= 0 ? "error" : product.quantity <= 5 ? "warning" : "default"}
+                        sx={{ fontSize: "0.75rem", height: 24, fontWeight: 500 }}
+                      />
+                    </Stack>
 
                     <Typography variant="h6" sx={{ fontWeight: 'bold', mt: 0.5 }}>
                       {truncate(product.name)}

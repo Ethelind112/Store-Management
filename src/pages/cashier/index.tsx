@@ -246,8 +246,8 @@ export default function CashierPage() {
 
   const hasActiveFilters = Boolean(minPrice !== "" || maxPrice !== "" || sort !== null);
 
-  // ─── Cart state (keyed by product id string, matching API Product.id type) ─
-  const [cart, setCart] = useState<Record<string, number>>({});
+  // ─── Cart state (keyed by product id string, storing full CartItem) ──────
+  const [cart, setCart] = useState<Record<string, CartItem>>({});
 
   // ─── Checkout dialog state ─────────────────────────────────────────────────
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -255,16 +255,10 @@ export default function CashierPage() {
   const [cashReceived, setCashReceived] = useState("");
   const [successSnackbar, setSuccessSnackbar] = useState(false);
 
-  // ─── Cart derived values ───────────────────────────────────────────────────
+  // ─── Cart derived values (independent of active search query/filters) ──────
   const cartItems: CartItem[] = useMemo(() => {
-    return Object.entries(cart)
-      .map(([id, qty]) => {
-        const product = data.find((p) => p.id === id);
-        if (!product || qty <= 0) return null;
-        return { product, quantity: qty };
-      })
-      .filter((item): item is CartItem => item !== null);
-  }, [cart, data]);
+    return Object.values(cart);
+  }, [cart]);
 
   const totalQuantity = useMemo(
     () => cartItems.reduce((acc, item) => acc + item.quantity, 0),
@@ -283,22 +277,23 @@ export default function CashierPage() {
   );
 
   // ─── Cart actions ──────────────────────────────────────────────────────────
-  const handleAddToCart = (productId: string) => {
-    const product = data.find((p) => p.id === productId);
-    const maxQty = product?.quantity ?? Infinity;
+  const handleAddToCart = (product: Product) => {
+    const maxQty = product.quantity ?? Infinity;
     if (maxQty <= 0) return;
-    setCart((prev) => ({ ...prev, [productId]: 1 }));
+    setCart((prev) => ({ ...prev, [product.id]: { product, quantity: 1 } }));
   };
 
   const handleUpdateQuantity = (productId: string, quantity: number) => {
-    const product = data.find((p) => p.id === productId);
-    const maxQty = product?.quantity ?? Infinity;
     setCart((prev) => {
       const next = { ...prev };
       if (quantity <= 0) {
         delete next[productId];
-      } else {
-        next[productId] = maxQty > 0 ? Math.min(quantity, maxQty) : quantity;
+      } else if (next[productId]) {
+        const maxQty = next[productId].product.quantity ?? Infinity;
+        next[productId] = {
+          ...next[productId],
+          quantity: maxQty > 0 ? Math.min(quantity, maxQty) : quantity,
+        };
       }
       return next;
     });
@@ -401,7 +396,7 @@ export default function CashierPage() {
               <>
                 <Grid container spacing={2.5}>
                   {data.map((product) => {
-                    const currentQty = cart[product.id] || 0;
+                    const currentQty = cart[product.id]?.quantity || 0;
                     const isInCart = currentQty > 0;
                     const maxStock = product.quantity ?? Infinity;
                     const isOutOfStock = typeof product.quantity === "number" && product.quantity <= 0;
@@ -437,13 +432,22 @@ export default function CashierPage() {
 
                           {/* Content — order exactly as product page: chip → name → description → price row */}
                           <CardContent sx={{ flexGrow: 1 }}>
-                            {/* Category */}
-                            <Chip
-                              label={product.category?.name || "Uncategorized"}
-                              size="small"
-                              color="secondary"
-                              variant="outlined"
-                            />
+                            {/* Category & Stock row */}
+                            <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
+                              <Chip
+                                label={product.category?.name || "Uncategorized"}
+                                size="small"
+                                color="secondary"
+                                variant="outlined"
+                              />
+                              <Chip
+                                label={product.quantity <= 0 ? "Habis" : `Stok: ${product.quantity}`}
+                                size="small"
+                                variant="outlined"
+                                color={product.quantity <= 0 ? "error" : product.quantity <= 5 ? "warning" : "default"}
+                                sx={{ fontSize: "0.75rem", height: 24, fontWeight: 500 }}
+                              />
+                            </Stack>
 
                             {/* Name */}
                             <Typography variant="h6" sx={{ fontWeight: "bold", mt: 0.5 }}>
@@ -490,7 +494,7 @@ export default function CashierPage() {
                                     <IconButton
                                       size="small"
                                       color="primary"
-                                      onClick={() => handleAddToCart(product.id)}
+                                      onClick={() => handleAddToCart(product)}
                                       disabled={isOutOfStock}
                                       aria-label={isOutOfStock ? "Stok habis" : "Tambah ke Keranjang"}
                                       sx={{
