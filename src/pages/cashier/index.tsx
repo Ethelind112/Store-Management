@@ -26,6 +26,7 @@ import {
   Alert,
   Tooltip,
   Stack,
+  CircularProgress,
 } from "@mui/material";
 import {
   AddShoppingCart as AddShoppingCartIcon,
@@ -49,6 +50,10 @@ import { useProducts } from "../product/hooks";
 import { FilterMenuOptions } from "../../components/FilterMenu/constant";
 import { LoadingPage } from "../../components/Loading";
 import { ErrorPage } from "../../components/Error";
+import { useCreateTransaction } from "./hooks";
+import { CreateTransactionPayload } from "../../types/transaction";
+
+const STATIC_ADMIN_ID = "0071665c-eb86-4738-a1ab-d230226b8dda";
 
 // Cart item references the API Product type
 export interface CartItem {
@@ -250,10 +255,12 @@ export default function CashierPage() {
   const [cart, setCart] = useState<Record<string, CartItem>>({});
 
   // ─── Checkout dialog state ─────────────────────────────────────────────────
+  const createTransaction = useCreateTransaction();
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [cashReceived, setCashReceived] = useState("");
   const [successSnackbar, setSuccessSnackbar] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // ─── Cart derived values (independent of active search query/filters) ──────
   const cartItems: CartItem[] = useMemo(() => {
@@ -342,14 +349,33 @@ export default function CashierPage() {
 
   // ─── Checkout handlers ─────────────────────────────────────────────────────
   const handleOpenCheckout = () => {
+    setErrorMessage(null);
     setCashReceived(totalPrice.toLocaleString("id-ID"));
     setIsCheckoutOpen(true);
   };
 
   const handleConfirmCheckout = () => {
-    setIsCheckoutOpen(false);
-    setSuccessSnackbar(true);
-    setCart({});
+    setErrorMessage(null);
+    const payload: CreateTransactionPayload = {
+      admin_id: STATIC_ADMIN_ID,
+      payment_method: paymentMethod,
+      items: cartItems.map((item) => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        price: item.product.max_price ?? item.product.min_price ?? 0,
+      })),
+    };
+
+    createTransaction.mutate(payload, {
+      onSuccess: () => {
+        setIsCheckoutOpen(false);
+        setSuccessSnackbar(true);
+        setCart({});
+      },
+      onError: (err: any) => {
+        setErrorMessage(err.message || "Gagal memproses transaksi. Silakan coba lagi.");
+      },
+    });
   };
 
   const cashChange = Number(cashReceived.replace(/\./g, "").replace(",", ".")) - totalPrice;
@@ -806,7 +832,12 @@ export default function CashierPage() {
           ====================================================================== */}
       <Dialog
         open={isCheckoutOpen}
-        onClose={() => setIsCheckoutOpen(false)}
+        onClose={() => {
+          if (!createTransaction.isPending) {
+            setIsCheckoutOpen(false);
+            setErrorMessage(null);
+          }
+        }}
         maxWidth="sm"
         fullWidth
         slotProps={{ paper: { sx: { borderRadius: 3, p: 1 } } }}
@@ -820,6 +851,11 @@ export default function CashierPage() {
 
         <DialogContent dividers>
           <Stack spacing={2.5}>
+            {errorMessage && (
+              <Alert severity="error" onClose={() => setErrorMessage(null)}>
+                {errorMessage}
+              </Alert>
+            )}
             {/* Order summary */}
             <Box>
               <Typography variant="subtitle2" color="text.secondary" gutterBottom>
@@ -989,17 +1025,32 @@ export default function CashierPage() {
         </DialogContent>
 
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={() => setIsCheckoutOpen(false)} color="inherit">
+          <Button
+            onClick={() => {
+              if (!createTransaction.isPending) {
+                setIsCheckoutOpen(false);
+                setErrorMessage(null);
+              }
+            }}
+            color="inherit"
+            disabled={createTransaction.isPending}
+          >
             Batal
           </Button>
           <Button
             variant="contained"
             color="primary"
-            disabled={!isCashSufficient}
+            disabled={!isCashSufficient || createTransaction.isPending}
             onClick={handleConfirmCheckout}
-            startIcon={<CheckCircleOutlineIcon />}
+            startIcon={
+              createTransaction.isPending ? (
+                <CircularProgress size={18} color="inherit" />
+              ) : (
+                <CheckCircleOutlineIcon />
+              )
+            }
           >
-            Selesaikan Transaksi
+            {createTransaction.isPending ? "Memproses..." : "Selesaikan Transaksi"}
           </Button>
         </DialogActions>
       </Dialog>
