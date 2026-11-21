@@ -1,8 +1,8 @@
-import { Box, Chip, IconButton, InputAdornment, Stack, TextField, Typography } from '@mui/material';
+import { Box, IconButton, InputAdornment, TextField, Typography } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import FilterListIcon from "@mui/icons-material/FilterList";
 import FilterMenu from '../FilterMenu';
-import { ChangeEvent, Dispatch, SetStateAction, useState } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 import CategoryChip from '../CategoryChips';
 import { Category } from '../../types/category';
 
@@ -10,7 +10,7 @@ interface TopSearchBarProps {
     title: string;
     description: string;
     search: string;
-    onSearchChange: (event: ChangeEvent<HTMLInputElement>) => void;
+    onSearchChange: (searchTerm: string) => void;
     hasActiveFilters: boolean;
     draftMinPrice: string;
     setDraftMinPrice: Dispatch<SetStateAction<string>>;
@@ -18,10 +18,10 @@ interface TopSearchBarProps {
     setDraftMaxPrice: Dispatch<SetStateAction<string>>;
     draftSortBy: string;
     setDraftSortBy: Dispatch<SetStateAction<string>>;
-    onApplyFilters: () => void;
+    onApplyFilters: (category: Category | null) => void;
     onClearFilters: () => void;
-    category?: string;
-    onCategoryChange: (cat: string) => void;
+    category?: Category | null;
+    onCategoryChange: (cat: Category | null) => void;
 }
 
 const TopSearchBar = ({
@@ -38,10 +38,11 @@ const TopSearchBar = ({
     setDraftSortBy,
     onApplyFilters,
     onClearFilters,
-    category = 'All',
+    category = null,
     onCategoryChange,
 }: TopSearchBarProps) => {
     const [filterMenuAnchor, setFilterMenuAnchor] = useState<HTMLElement | null>(null);
+    const [searchInput, setSearchInput] = useState(search);
 
     return (
         <Box 
@@ -67,8 +68,13 @@ const TopSearchBar = ({
                             fullWidth
                             size="small"
                             placeholder="Cari produk"
-                            value={search}
-                            onChange={onSearchChange}
+                            value={searchInput}
+                            onChange={(e) => setSearchInput(e.target.value)}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                onSearchChange(searchInput);
+                                }
+                            }}
                             sx={{ 
                                 width: "80%",
                                 '& .MuiOutlinedInput-root': {
@@ -114,7 +120,7 @@ const TopSearchBar = ({
                             draftMaxPrice={draftMaxPrice}
                             setDraftMaxPrice={setDraftMaxPrice}
                             onApply={() => {
-                                onApplyFilters();
+                                onApplyFilters(category);
                                 setFilterMenuAnchor(null);
                             }}
                             onClear={() => {

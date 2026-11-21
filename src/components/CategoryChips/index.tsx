@@ -6,8 +6,8 @@ import { useQuery } from "@tanstack/react-query";
 import { Response } from "../../types/response";
 
 interface CategoryChipsProps {
-    handleCategoryClick: (cat: string) => void;
-    category: string;
+    handleCategoryClick: (cat: Category | null) => void;
+    category: Category | null;
 }
 
 function CategoryChip({handleCategoryClick, category}: CategoryChipsProps) {
@@ -44,14 +44,14 @@ function CategoryChip({handleCategoryClick, category}: CategoryChipsProps) {
                     </Stack>
                 ) : (
                     <>
-                        <Chip key="all" label="All" color={category === "All" ? "primary" : "default"} variant={category === "All" ? "filled" : "outlined"} onClick={() => handleCategoryClick("All")} clickable />
+                        <Chip key="all" label="All" color={category === null ? "primary" : "default"} variant={category === null ? "filled" : "outlined"} onClick={() => handleCategoryClick(null)} clickable />
                         {data?.data?.map((cat) => (
                             <Chip
                                 key={cat.id}
                                 label={cat.name}
-                                color={category === cat.name ? "primary" : "default"}
-                                variant={category === cat.name ? "filled" : "outlined"}
-                                onClick={() => handleCategoryClick(cat.name)}
+                                color={category?.id === cat.id ? "primary" : "default"}
+                                variant={category?.id === cat.id ? "filled" : "outlined"}
+                                onClick={() => handleCategoryClick(cat)}
                                 clickable
                             />
                         ))}
