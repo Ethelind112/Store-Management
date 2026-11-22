@@ -27,38 +27,25 @@ export const useAuthStore = create<AuthState>()(
       isLoading: false,
 
       login: async (credentials: LoginRequest) => {
-        set({ isLoading: true });
-        try {
-          const response = await authService.login(credentials);
-          const receivedToken = response?.data?.token;
+        const response = await authService.login(credentials);
+        const receivedToken = response?.data?.token;
 
-          if (!receivedToken) {
-            throw new Error('Token otentikasi tidak ditemukan dalam respon server.');
-          }
-
-          const decodedUser = extractUserFromToken(receivedToken);
-
-          set({
-            token: receivedToken,
-            user: decodedUser,
-            isAuthenticated: Boolean(decodedUser),
-            isLoading: false,
-          });
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
+        if (!receivedToken) {
+          throw new Error('Token otentikasi tidak ditemukan dalam respon server.');
         }
+
+        const decodedUser = extractUserFromToken(receivedToken);
+
+        set({
+          token: receivedToken,
+          user: decodedUser,
+          isAuthenticated: Boolean(decodedUser),
+          isLoading: false,
+        });
       },
 
       register: async (data: RegisterRequest) => {
-        set({ isLoading: true });
-        try {
-          await authService.register(data);
-          set({ isLoading: false });
-        } catch (error) {
-          set({ isLoading: false });
-          throw error;
-        }
+        await authService.register(data);
       },
 
       logout: () => {

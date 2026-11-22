@@ -50,9 +50,7 @@ const theme = createTheme({
 // --- Main Responsive Layout Component (Authenticated POS Shell) ---
 function ResponsiveLayout() {
   return (
-    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
-      <CssBaseline />
-
+    <Box sx={{ display: 'flex', height: '100vh', width: '100%', overflow: 'hidden' }}>
       <Box component="nav" sx={{ flexShrink: 0 }}>
         <SideBar />
       </Box>
@@ -77,6 +75,7 @@ function ResponsiveLayout() {
 export default function App() {
   return (
     <ThemeProvider theme={theme}>
+      <CssBaseline />
       <AuthProvider>
         <Router>
           <Routes>
@@ -106,7 +105,7 @@ export default function App() {
               <Route
                 path={ROUTE.REGISTER}
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
                     <RegisterPage />
                   </ProtectedRoute>
                 }

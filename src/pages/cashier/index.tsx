@@ -266,6 +266,8 @@ export default function CashierPage() {
   const [paymentMethod, setPaymentMethod] = useState("cash");
   const [cashReceived, setCashReceived] = useState("");
   const [successSnackbar, setSuccessSnackbar] = useState(false);
+  const [errorSnackbar, setErrorSnackbar] = useState(false);
+  const [errorSnackbarMsg, setErrorSnackbarMsg] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // ─── Cart derived values (independent of active search query/filters) ──────
@@ -419,7 +421,10 @@ export default function CashierPage() {
         setSuccessSnackbar(true);
       },
       onError: (err: any) => {
-        setErrorMessage(err.message || "Gagal memproses transaksi. Silakan coba lagi.");
+        const msg = err.message || "Gagal memproses transaksi. Silakan coba lagi.";
+        setErrorMessage(msg);
+        setErrorSnackbarMsg(msg);
+        setErrorSnackbar(true);
       },
     });
   };
@@ -1239,6 +1244,22 @@ export default function CashierPage() {
           sx={{ width: "100%", borderRadius: 2 }}
         >
           Transaksi berhasil diselesaikan!
+        </Alert>
+      </Snackbar>
+
+      {/* Error snackbar (identical style to success, in red) */}
+      <Snackbar
+        open={errorSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setErrorSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setErrorSnackbar(false)}
+          severity="error"
+          sx={{ width: "100%", borderRadius: 2 }}
+        >
+          {errorSnackbarMsg}
         </Alert>
       </Snackbar>
     </Container>

@@ -19,6 +19,7 @@ import {
   Card,
   CardContent,
   Divider,
+  Snackbar,
 } from '@mui/material';
 import {
   PersonOutlined as PersonOutlineIcon,
@@ -52,6 +53,9 @@ export const RegisterPage: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState<boolean>(false);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [errorSnackbar, setErrorSnackbar] = useState<boolean>(false);
+  const [errorSnackbarMsg, setErrorSnackbarMsg] = useState<string>('');
+  const [successSnackbar, setSuccessSnackbar] = useState<boolean>(false);
 
   const handleChange = (field: keyof RegisterFormValues) => (
     e: React.ChangeEvent<HTMLInputElement>
@@ -110,7 +114,9 @@ export const RegisterPage: React.FC = () => {
         role: formValues.role,
       });
 
-      setSuccessMessage(`Pengguna "${formValues.username.trim()}" dengan role "${formValues.role}" berhasil didaftarkan!`);
+      const successText = `Pengguna "${formValues.username.trim()}" dengan role "${formValues.role}" berhasil didaftarkan!`;
+      setSuccessMessage(successText);
+      setSuccessSnackbar(true);
       setFormValues({
         username: '',
         password: '',
@@ -123,6 +129,8 @@ export const RegisterPage: React.FC = () => {
           ? err.message
           : 'Gagal melakukan pendaftaran pengguna. Silakan coba lagi.';
       setErrors({ general: errorMessage });
+      setErrorSnackbarMsg(errorMessage);
+      setErrorSnackbar(true);
     } finally {
       setIsSubmitting(false);
     }
@@ -460,6 +468,38 @@ export const RegisterPage: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
+
+      {/* Error snackbar (matching Cashier notification style, in red) */}
+      <Snackbar
+        open={errorSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setErrorSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setErrorSnackbar(false)}
+          severity="error"
+          sx={{ width: "100%", borderRadius: 2 }}
+        >
+          {errorSnackbarMsg}
+        </Alert>
+      </Snackbar>
+
+      {/* Success snackbar */}
+      <Snackbar
+        open={successSnackbar}
+        autoHideDuration={4000}
+        onClose={() => setSuccessSnackbar(false)}
+        anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
+      >
+        <Alert
+          onClose={() => setSuccessSnackbar(false)}
+          severity="success"
+          sx={{ width: "100%", borderRadius: 2 }}
+        >
+          {successMessage}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import {
   Box,
+  Card,
+  CardContent,
   TextField,
   Button,
   InputAdornment,
@@ -11,8 +13,6 @@ import {
   Stack,
   FormControlLabel,
   Checkbox,
-  Chip,
-  Paper,
 } from '@mui/material';
 import {
   PersonOutlined as PersonOutlineIcon,
@@ -21,33 +21,11 @@ import {
   VisibilityOff as VisibilityOffIcon,
   Login as LoginIcon,
   PointOfSale as PointOfSaleIcon,
-  Inventory as InventoryIcon,
-  ReceiptLong as ReceiptLongIcon,
-  CheckCircleOutlined as CheckCircleOutlineIcon,
-  ShieldOutlined as ShieldOutlinedIcon,
 } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { ROUTE } from '../../constants/route';
 import { AuthFormErrors, LoginFormValues } from '../../types/auth';
-
-const highlights = [
-  {
-    icon: <PointOfSaleIcon sx={{ color: '#90caf9', fontSize: 22 }} />,
-    title: 'Transaksi Kasir Cepat',
-    desc: 'Dukungan pembayaran tunai, QRIS, dan debit secara instan.',
-  },
-  {
-    icon: <InventoryIcon sx={{ color: '#90caf9', fontSize: 22 }} />,
-    title: 'Katalog & Stok Terpadu',
-    desc: 'Monitoring kategori dan persediaan produk secara real-time.',
-  },
-  {
-    icon: <ReceiptLongIcon sx={{ color: '#90caf9', fontSize: 22 }} />,
-    title: 'Cetak Struk Otomatis',
-    desc: 'Format cetak struk kasir rapi siap pakai untuk pelanggan.',
-  },
-];
 
 export const LoginPage: React.FC = () => {
   const login = useAuthStore((state) => state.login);
@@ -129,210 +107,81 @@ export const LoginPage: React.FC = () => {
   return (
     <Box
       sx={{
-        width: '100vw',
+        width: '100%',
         minHeight: '100vh',
-        m: 0,
-        p: 0,
-        display: 'flex',
-        flexDirection: { xs: 'column', md: 'row' },
         bgcolor: '#f4f6f8',
-        overflowX: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        py: { xs: 4, sm: 6 },
+        px: { xs: 2, sm: 3 },
+        boxSizing: 'border-box',
       }}
     >
-      {/* ─── Left Brand Hero Panel (Full Screen Half) ─── */}
-      <Box
+      <Card
+        elevation={0}
         sx={{
-          flex: { xs: 'none', md: '0 0 50%', lg: '0 0 52%' },
-          background: 'linear-gradient(135deg, #0d47a1 0%, #1565c0 50%, #1976d2 100%)',
-          color: '#ffffff',
-          p: { xs: 4, sm: 6, md: 8 },
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          position: 'relative',
+          width: '100%',
+          maxWidth: 440,
+          borderRadius: 3.5,
+          border: '1px solid rgba(0, 0, 0, 0.08)',
+          boxShadow: '0 8px 30px rgba(0, 0, 0, 0.06)',
+          bgcolor: '#ffffff',
           overflow: 'hidden',
-          minHeight: { xs: 280, md: '100vh' },
         }}
       >
-        {/* Decorative background shapes */}
-        <Box
+        <CardContent
           sx={{
-            position: 'absolute',
-            top: -100,
-            right: -100,
-            width: 320,
-            height: 320,
-            borderRadius: '50%',
-            bgcolor: 'rgba(255, 255, 255, 0.05)',
-            pointerEvents: 'none',
+            px: { xs: 3, sm: 4.5 },
+            py: { xs: 3.5, sm: 4.5 },
+            '&:last-child': {
+              pb: { xs: 3.5, sm: 4.5 },
+            },
           }}
-        />
-        <Box
-          sx={{
-            position: 'absolute',
-            bottom: -60,
-            left: -60,
-            width: 260,
-            height: 260,
-            borderRadius: '50%',
-            bgcolor: 'rgba(255, 255, 255, 0.04)',
-            pointerEvents: 'none',
-          }}
-        />
-
-        {/* Brand Header */}
-        <Box sx={{ position: 'relative', zIndex: 1 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1.5 }}>
+        >
+          {/* Brand Header */}
+          <Box sx={{ textAlign: 'center', mb: 3.5 }}>
             <Box
               sx={{
-                bgcolor: 'rgba(255, 255, 255, 0.18)',
-                p: 1.25,
-                borderRadius: 3,
-                display: 'flex',
+                width: 52,
+                height: 52,
+                borderRadius: 2.5,
+                bgcolor: 'primary.main',
+                display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                backdropFilter: 'blur(6px)',
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.1)',
+                color: '#ffffff',
+                mb: 1.5,
+                boxShadow: '0 4px 14px rgba(25, 118, 210, 0.3)',
               }}
             >
-              <PointOfSaleIcon sx={{ fontSize: 36, color: '#ffffff' }} />
+              <PointOfSaleIcon sx={{ fontSize: 30 }} />
             </Box>
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 800, letterSpacing: -0.5 }}>
-                Bright Print
-              </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: 'rgba(255, 255, 255, 0.85)', fontWeight: 500 }}
-              >
-                Point of Sale & Kasir Pintar
-              </Typography>
-            </Box>
-          </Box>
 
-          {/* Key Features (Visible on md and up) */}
-          <Box sx={{ display: { xs: 'none', md: 'block' }, mt: 8 }}>
             <Typography
               variant="h5"
-              sx={{
-                fontWeight: 700,
-                color: '#ffffff',
-                mb: 3,
-                lineHeight: 1.3,
-              }}
-            >
-              Sistem Kasir Modern, Cepat & Handal untuk Bisnis Anda
-            </Typography>
-
-            <Stack spacing={3}>
-              {highlights.map((item, idx) => (
-                <Box
-                  key={idx}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 2,
-                    p: 1.5,
-                    borderRadius: 2.5,
-                    bgcolor: 'rgba(255, 255, 255, 0.08)',
-                    backdropFilter: 'blur(4px)',
-                  }}
-                >
-                  <Box
-                    sx={{
-                      bgcolor: 'rgba(255, 255, 255, 0.15)',
-                      p: 1,
-                      borderRadius: 2,
-                      display: 'flex',
-                    }}
-                  >
-                    {item.icon}
-                  </Box>
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#ffffff' }}>
-                      {item.title}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ color: 'rgba(255, 255, 255, 0.8)', display: 'block' }}
-                    >
-                      {item.desc}
-                    </Typography>
-                  </Box>
-                </Box>
-              ))}
-            </Stack>
-          </Box>
-        </Box>
-
-        {/* Bottom Security Note */}
-        <Box sx={{ position: 'relative', zIndex: 1, mt: 4 }}>
-          <Box
-            sx={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 1.25,
-              bgcolor: 'rgba(0, 0, 0, 0.18)',
-              px: 2,
-              py: 1,
-              borderRadius: 2,
-            }}
-          >
-            <CheckCircleOutlineIcon sx={{ fontSize: 18, color: '#81c784' }} />
-            <Typography variant="caption" sx={{ color: 'rgba(255, 255, 255, 0.95)' }}>
-              Akses aman berbasis JWT token • Terintegrasi Cloud POS
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* ─── Right Login Portal Form (Full Screen Half) ─── */}
-      <Box
-        sx={{
-          flex: { xs: 1, md: '0 0 50%', lg: '0 0 48%' },
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          p: { xs: 3, sm: 6, md: 8 },
-          bgcolor: '#ffffff',
-          minHeight: { md: '100vh' },
-        }}
-      >
-        <Box sx={{ width: '100%', maxWidth: 440 }}>
-          {/* Top Form Header */}
-          <Box sx={{ mb: 4 }}>
-            <Chip
-              icon={<ShieldOutlinedIcon sx={{ fontSize: '1rem !important' }} />}
-              label="Portal Akses Kasir"
-              size="small"
-              color="primary"
-              variant="outlined"
-              sx={{ fontWeight: 600, mb: 2, borderRadius: 1.5 }}
-            />
-            <Typography
-              variant="h4"
               sx={{
                 fontWeight: 800,
                 color: 'text.primary',
                 letterSpacing: -0.5,
-                mb: 1,
               }}
             >
-              Masuk ke Sistem
+              Bright Print
             </Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary', fontSize: '0.95rem' }}>
-              Masukkan username dan password Anda untuk memulai sesi kasir.
+
+            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+              Masuk untuk mengakses sistem kasir
             </Typography>
           </Box>
 
-          {/* Error Message */}
+          {/* Error Alert */}
           {errors.general && (
             <Alert
               severity="error"
               sx={{
                 mb: 3,
-                borderRadius: 2.5,
+                borderRadius: 2,
                 fontSize: '0.875rem',
                 '& .MuiAlert-message': { width: '100%' },
               }}
@@ -419,29 +268,22 @@ export const LoginPage: React.FC = () => {
               />
 
               {/* Remember Me Option */}
-              <Box
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                }}
-              >
-                <FormControlLabel
-                  control={
-                    <Checkbox
-                      checked={rememberMe}
-                      onChange={(e) => setRememberMe(e.target.checked)}
-                      color="primary"
-                      size="small"
-                    />
-                  }
-                  label={
-                    <Typography variant="body2" color="text.secondary">
-                      Ingat sesi saya di perangkat ini
-                    </Typography>
-                  }
-                />
-              </Box>
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    color="primary"
+                    size="small"
+                  />
+                }
+                label={
+                  <Typography variant="body2" color="text.secondary">
+                    Ingat sesi saya
+                  </Typography>
+                }
+                sx={{ mt: -0.5 }}
+              />
 
               {/* Submit Button */}
               <Button
@@ -458,41 +300,24 @@ export const LoginPage: React.FC = () => {
                   )
                 }
                 sx={{
-                  py: 1.5,
+                  py: 1.4,
                   fontSize: '1rem',
                   fontWeight: 700,
                   textTransform: 'none',
                   borderRadius: 2.5,
-                  boxShadow: '0 6px 20px rgba(25, 118, 210, 0.3)',
+                  boxShadow: '0 4px 14px rgba(25, 118, 210, 0.28)',
                   transition: 'all 0.2s ease-in-out',
                   '&:hover': {
-                    boxShadow: '0 8px 24px rgba(25, 118, 210, 0.4)',
+                    boxShadow: '0 6px 18px rgba(25, 118, 210, 0.38)',
                   },
                 }}
               >
-                {isSubmitting ? 'Memverifikasi Kredensial...' : 'Masuk Sekarang'}
+                {isSubmitting ? 'Memverifikasi...' : 'Masuk Sekarang'}
               </Button>
             </Stack>
           </Box>
-
-          {/* Admin Notice */}
-          <Paper
-            elevation={0}
-            sx={{
-              mt: 4,
-              p: 2,
-              borderRadius: 2.5,
-              bgcolor: 'rgba(25, 118, 210, 0.04)',
-              border: '1px dashed rgba(25, 118, 210, 0.25)',
-              textAlign: 'center',
-            }}
-          >
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', lineHeight: 1.4 }}>
-              Pendaftaran akun kasir baru hanya dapat dilakukan oleh <strong>Admin</strong> atau <strong>Super Admin</strong> melalui menu Pengaturan Pengguna.
-            </Typography>
-          </Paper>
-        </Box>
-      </Box>
+        </CardContent>
+      </Card>
     </Box>
   );
 };

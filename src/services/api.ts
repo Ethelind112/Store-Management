@@ -8,6 +8,11 @@ interface RequestOptions extends RequestInit {
   headers?: Record<string, string>;
 }
 
+interface ApiErrorResponse {
+  message?: string;
+  error?: string;
+}
+
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { data, headers: customHeaders, ...customConfig } = options;
 
@@ -35,12 +40,30 @@ export async function apiClient<T>(endpoint: string, options: RequestOptions = {
   const response = await fetch(`${BASE_URL}/${endpoint}`, config);
 
   if (!response.ok) {
-    if (response.status === 401) {
-      // Clear expired / invalid token state in Zustand
+    // If unauthorized on an authenticated endpoint (not during login), log out
+    if (response.status === 401 && endpoint !== 'login') {
       useAuthStore.getState().logout();
     }
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error((errorData as { message?: string }).message || `HTTP error! Status: ${response.status}`);
+
+    const errorData = (await response.json().catch(() => ({}))) as ApiErrorResponse;
+
+    let errorMessage = '';
+
+    if (errorData.message && errorData.error) {
+      errorMessage = `${errorData.message}: ${errorData.error}`;
+    } else if (errorData.message) {
+      errorMessage = errorData.message;
+    } else if (errorData.error) {
+      errorMessage = errorData.error;
+    } else if (response.status === 401) {
+      errorMessage = 'Username atau password salah (401 Unauthorized).';
+    } else if (response.status === 400) {
+      errorMessage = 'Permintaan tidak valid (400 Bad Request).';
+    } else {
+      errorMessage = `Terjadi kesalahan (Status ${response.status}).`;
+    }
+
+    throw new Error(errorMessage);
   }
 
   const text = await response.text();
