@@ -1,30 +1,34 @@
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import { useAuthStore } from '../../store/useAuthStore';
 import { ROUTE } from '../../constants/route';
 import { LoadingPage } from '../Loading';
 
 interface ProtectedRouteProps {
   children: React.ReactElement;
-  requiredRole?: string;
+  allowedRoles?: string[];
 }
 
 export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   children,
-  requiredRole,
+  allowedRoles,
 }) => {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const user = useAuthStore((state) => state.user);
   const location = useLocation();
 
   if (isLoading) {
     return <LoadingPage />;
   }
 
+  // Redirect to login if user is not authenticated
   if (!isAuthenticated) {
     return <Navigate to={ROUTE.LOGIN} state={{ from: location }} replace />;
   }
 
-  if (requiredRole && user?.role !== requiredRole) {
+  // Check role authorization if restricted
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to={ROUTE.CASHIER} replace />;
   }
 

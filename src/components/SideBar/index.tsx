@@ -17,16 +17,18 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
-import { MenuItems, MenuWidth } from "./constant";
+import { MenuItems, AdminMenuItems, MenuWidth } from "./constant";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { useAuth } from "../../context/AuthContext";
+import { useAuthStore } from "../../store/useAuthStore";
 import { ROUTE } from "../../constants/route";
 
 const SideBar = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, isAuthenticated, logout } = useAuth();
+  const user = useAuthStore((state) => state.user);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const logout = useAuthStore((state) => state.logout);
 
   const [open, setOpen] = useState(true);
 
@@ -39,8 +41,28 @@ const SideBar = () => {
     navigate(ROUTE.LOGIN);
   };
 
+  const isAdminOrSuper = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+
   const roleLabel =
-    user?.role === 'admin' ? 'Admin Toko' : user?.role ? 'Kasir' : 'Pengguna';
+    user?.role === 'SUPER_ADMIN'
+      ? 'Super Admin'
+      : user?.role === 'ADMIN'
+      ? 'Admin Toko'
+      : 'Kasir';
+
+  const roleBgColor =
+    user?.role === 'SUPER_ADMIN'
+      ? '#fce4ec'
+      : user?.role === 'ADMIN'
+      ? '#fff3e0'
+      : 'primary.light';
+
+  const roleTextColor =
+    user?.role === 'SUPER_ADMIN'
+      ? '#c2185b'
+      : user?.role === 'ADMIN'
+      ? '#e65100'
+      : 'primary.contrastText';
 
   return (
     <Drawer
@@ -99,6 +121,7 @@ const SideBar = () => {
           </IconButton>
         </Toolbar>
 
+        {/* Regular Menu Items */}
         <List disablePadding>
           {MenuItems.map((item) => (
             <ListItem key={item.text} sx={{ px: 1, py: 0.25 }}>
@@ -136,6 +159,68 @@ const SideBar = () => {
             </ListItem>
           ))}
         </List>
+
+        {/* Admin Only Menu Items */}
+        {isAdminOrSuper && (
+          <>
+            <Box sx={{ px: 2, pt: 2, pb: 0.5 }}>
+              {open ? (
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontWeight: 700,
+                    textTransform: 'uppercase',
+                    color: 'text.secondary',
+                    fontSize: '0.65rem',
+                    letterSpacing: 0.8,
+                  }}
+                >
+                  Administrasi
+                </Typography>
+              ) : (
+                <Divider sx={{ my: 0.5 }} />
+              )}
+            </Box>
+
+            <List disablePadding>
+              {AdminMenuItems.map((item) => (
+                <ListItem key={item.text} sx={{ px: 1, py: 0.25 }}>
+                  <ListItemButton
+                    selected={location.pathname === item.path}
+                    onClick={() => {
+                      navigate(item.path);
+                    }}
+                    sx={{
+                      justifyContent: open ? 'flex-start' : 'center',
+                      borderRadius: 3,
+                      '&.Mui-selected': {
+                        backgroundColor: 'primary.light',
+                        color: 'primary.contrastText',
+                        '& .MuiListItemIcon-root': {
+                          color: 'primary.contrastText',
+                        },
+                      },
+                      '&.Mui-selected:hover': {
+                        backgroundColor: 'primary.main',
+                      },
+                    }}
+                  >
+                    <ListItemIcon
+                      sx={{
+                        color: location.pathname === item.path ? 'inherit' : 'text.secondary',
+                        justifyContent: 'center',
+                      }}
+                    >
+                      {<item.icon />}
+                    </ListItemIcon>
+
+                    {open && <ListItemText primary={item.text} />}
+                  </ListItemButton>
+                </ListItem>
+              ))}
+            </List>
+          </>
+        )}
       </Box>
 
       {/* Bottom User / Authentication Section */}
@@ -181,10 +266,10 @@ const SideBar = () => {
                     sx={{
                       height: 18,
                       fontSize: '0.65rem',
-                      fontWeight: 600,
+                      fontWeight: 700,
                       mt: 0.25,
-                      bgcolor: user.role === 'admin' ? 'warning.light' : 'primary.light',
-                      color: user.role === 'admin' ? 'warning.dark' : 'primary.contrastText',
+                      bgcolor: roleBgColor,
+                      color: roleTextColor,
                     }}
                   />
                 </Box>
@@ -196,7 +281,7 @@ const SideBar = () => {
                   onClick={handleLogout}
                   sx={{
                     color: 'text.secondary',
-                    '&:hover': { color: 'error.main', bgcolor: 'error.lighter' },
+                    '&:hover': { color: 'error.main' },
                   }}
                 >
                   <LogoutIcon fontSize="small" />

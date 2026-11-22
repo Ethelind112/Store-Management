@@ -11,6 +11,7 @@ import ProductPage from './pages/product';
 import CashierPage from './pages/cashier';
 import { AuthProvider } from './context/AuthContext';
 import { LoginPage, RegisterPage } from './pages/auth';
+import { ProtectedRoute } from './components/Auth/ProtectedRoute';
 import { GuestRoute } from './components/Auth/GuestRoute';
 import { ROUTE } from './constants/route';
 
@@ -46,10 +47,10 @@ const theme = createTheme({
   },
 });
 
-// --- Main Layout Component ---
+// --- Main Responsive Layout Component (Authenticated POS Shell) ---
 function ResponsiveLayout() {
   return (
-    <Box sx={{ display: 'flex', height: '100vh' }}>
+    <Box sx={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
       <CssBaseline />
 
       <Box component="nav" sx={{ flexShrink: 0 }}>
@@ -79,7 +80,7 @@ export default function App() {
       <AuthProvider>
         <Router>
           <Routes>
-            {/* Auth Routes (Standalone, without POS sidebar) */}
+            {/* Public Login Route (Full Screen, Guest Only) */}
             <Route
               path={ROUTE.LOGIN}
               element={
@@ -88,23 +89,31 @@ export default function App() {
                 </GuestRoute>
               }
             />
-            <Route
-              path={ROUTE.REGISTER}
-              element={
-                <GuestRoute>
-                  <RegisterPage />
-                </GuestRoute>
-              }
-            />
 
-            {/* App Layout Routes */}
-            <Route element={<ResponsiveLayout />}>
+            {/* Protected Routes: All other pages are strictly blocked unless authenticated */}
+            <Route
+              element={
+                <ProtectedRoute>
+                  <ResponsiveLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route path={ROUTE.HOME} element={<CashierPage />} />
               <Route path={ROUTE.CASHIER} element={<CashierPage />} />
               <Route path={ROUTE.PRODUCT} element={<ProductPage />} />
+
+              {/* User Registration: Strictly restricted to Admin & Super Admin */}
+              <Route
+                path={ROUTE.REGISTER}
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SUPER_ADMIN']}>
+                    <RegisterPage />
+                  </ProtectedRoute>
+                }
+              />
             </Route>
 
-            {/* Catch-all redirect */}
+            {/* Any unhandled route redirects to Home, which will bounce to /login if unauthenticated */}
             <Route path="*" element={<Navigate to={ROUTE.HOME} replace />} />
           </Routes>
         </Router>
