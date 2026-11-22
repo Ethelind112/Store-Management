@@ -9,12 +9,26 @@ interface RequestOptions extends RequestInit {
 export async function apiClient<T>(endpoint: string, options: RequestOptions = {}): Promise<T> {
   const { data, headers: customHeaders, ...customConfig } = options;
 
+  let token: string | null = null;
+  try {
+    token = localStorage.getItem('cashier_auth_token') || localStorage.getItem('token');
+  } catch {
+    token = null;
+  }
+
+  const defaultHeaders: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    defaultHeaders['Authorization'] = `Bearer ${token}`;
+  }
+
   const config: RequestInit = {
     method: data ? 'POST' : 'GET',
     body: data ? JSON.stringify(data) : undefined,
     headers: {
-      'Content-Type': 'application/json',
-      // 'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      ...defaultHeaders,
       ...(customHeaders || {}),
     },
     ...customConfig,

@@ -54,6 +54,7 @@ import { ErrorPage } from "../../components/Error";
 import { useCreateTransaction } from "./hooks";
 import { CreateTransactionPayload } from "../../types/transaction";
 import { printReceipt, ReceiptData } from "../../utils/printReceipt";
+import { useAuth } from "../../context/AuthContext";
 
 const STATIC_ADMIN_ID = "0071665c-eb86-4738-a1ab-d230226b8dda";
 
@@ -224,6 +225,7 @@ function QuantityStepper({
 }
 
 export default function CashierPage() {
+  const { user } = useAuth();
   // ─── API data via shared hook (same endpoint as ProductPage) ───────────────
   const {
     data,
@@ -397,7 +399,7 @@ export default function CashierPage() {
     };
 
     const payload: CreateTransactionPayload = {
-      admin_id: STATIC_ADMIN_ID,
+      admin_id: user?.id || STATIC_ADMIN_ID,
       payment_method: paymentMethod,
       items: cartItems.map((item) => ({
         product_id: item.product.id,
