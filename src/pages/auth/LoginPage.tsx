@@ -32,14 +32,20 @@ export const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
+  // Retrieve remembered username from localStorage if exists
+  const savedUsername =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('bright_print_remembered_username') || ''
+      : '';
+
   const [formValues, setFormValues] = useState<LoginFormValues>({
-    username: '',
+    username: savedUsername,
     password: '',
   });
 
   const [errors, setErrors] = useState<AuthFormErrors>({});
   const [showPassword, setShowPassword] = useState<boolean>(false);
-  const [rememberMe, setRememberMe] = useState<boolean>(true);
+  const [rememberMe, setRememberMe] = useState<boolean>(Boolean(savedUsername || true));
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const redirectPath =
@@ -87,10 +93,13 @@ export const LoginPage: React.FC = () => {
     setErrors({});
 
     try {
-      await login({
-        username: formValues.username.trim(),
-        password: formValues.password,
-      });
+      await login(
+        {
+          username: formValues.username.trim(),
+          password: formValues.password,
+        },
+        rememberMe
+      );
 
       navigate(redirectPath, { replace: true });
     } catch (err: unknown) {
