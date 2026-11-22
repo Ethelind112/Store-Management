@@ -1,7 +1,6 @@
 import {
   Box,
   CssBaseline,
-  Typography,
   ThemeProvider,
   createTheme,
 } from '@mui/material';
@@ -9,6 +8,7 @@ import {
 import { HashRouter as Router, Routes, Route, Outlet } from 'react-router-dom';
 import SideBar from './components/SideBar';
 import ProductPage from './pages/product';
+import CashierPage from './pages/cashier';
 
 const theme = createTheme({
   palette: {
@@ -21,16 +21,6 @@ const theme = createTheme({
     },
   },
 });
-
-// --- Route Components ---
-const Home = () => (
-  <Box sx={{ p: 2 }}>
-    <Typography variant="h4" gutterBottom>Home</Typography>
-    <Typography variant="body1">
-      Welcome to the Home page! This is a responsive sidebar template using Material-UI and React Router.
-    </Typography>
-  </Box>
-);
 
 // --- Main Layout Component ---
 function ResponsiveLayout() {
@@ -60,7 +50,8 @@ export default function App() {
       <Router>
         <Routes>
           <Route element={<ResponsiveLayout />}>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<CashierPage />} />
+            <Route path="/cashier" element={<CashierPage />} />
             <Route path="/product" element={<ProductPage />} />
           </Route>
         </Routes>
