@@ -32,7 +32,15 @@ export function useUsers() {
     },
   });
 
-  const handleDeleteUser = (userId: string) => deleteUserMutation.mutateAsync(userId);
+  const handleDeleteUser = async (userId: string) => {
+    await deleteUserMutation.mutateAsync(userId);
+
+    // If the deleted row was the only item on a later page, return to the
+    // previous page so the list does not remain on an empty page.
+    if (currentPage > 1 && data?.data.length === 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
 
   return {
     data: data?.data || [],

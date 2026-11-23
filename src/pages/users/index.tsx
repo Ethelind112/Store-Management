@@ -581,7 +581,6 @@ export default function UserManagementPage() {
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <AdminPanelSettingsIcon color="primary" sx={{ fontSize: 28 }} />
             <Typography variant="h5" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
               Manajemen Pengguna
             </Typography>
