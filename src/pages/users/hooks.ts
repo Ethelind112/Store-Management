@@ -24,10 +24,15 @@ export function useUsers() {
     setCurrentPage(1);
   };
 
-  const handleDeleteUser = (userId: string) => {
-    // Placeholder until delete endpoint is ready
-    console.log("Delete user placeholder, ID:", userId);
-  };
+  const queryClient = useQueryClient();
+  const deleteUserMutation = useMutation({
+    mutationFn: (userId: string) => userService.deleteUser(userId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+
+  const handleDeleteUser = (userId: string) => deleteUserMutation.mutateAsync(userId);
 
   return {
     data: data?.data || [],
@@ -42,6 +47,7 @@ export function useUsers() {
     currentPage,
     setCurrentPage,
     handleDeleteUser,
+    isDeletingUser: deleteUserMutation.isPending,
   };
 }
 

@@ -547,6 +547,7 @@ export default function UserManagementPage() {
   const [searchInput, setSearchInput] = useState('');
   const [successSnackbar, setSuccessSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
 
   const {
     data,
@@ -561,10 +562,12 @@ export default function UserManagementPage() {
     currentPage,
     setCurrentPage,
     handleDeleteUser,
+    isDeletingUser,
   } = useUsers();
 
   const handleUserAdded = (username: string) => {
     setSnackbarMessage(`Pengguna "${username}" berhasil ditambahkan ke dalam sistem!`);
+    setSnackbarSeverity('success');
     setSuccessSnackbar(true);
   };
 
@@ -780,15 +783,26 @@ export default function UserManagementPage() {
                     </TableCell>
 
                     <TableCell align="center">
-                      <Tooltip title="Hapus pengguna (endpoint belum tersedia)" arrow>
+                      <Tooltip title="Hapus pengguna" arrow>
                         <span>
                           <IconButton
                             size="small"
-                            onClick={() => handleDeleteUser(user.id)}
+                            onClick={async () => {
+                              try {
+                                await handleDeleteUser(user.id);
+                                setSnackbarMessage(`Pengguna "${user.username}" berhasil dihapus.`);
+                                setSnackbarSeverity('success');
+                                setSuccessSnackbar(true);
+                              } catch (deleteError) {
+                                setSnackbarMessage(deleteError instanceof Error ? deleteError.message : 'Gagal menghapus pengguna.');
+                                setSnackbarSeverity('error');
+                                setSuccessSnackbar(true);
+                              }
+                            }}
+                            disabled={isDeletingUser}
                             sx={{
-                              color: 'text.disabled',
-                              cursor: 'not-allowed',
-                              '&:hover': { color: 'text.disabled', bgcolor: 'transparent' },
+                              color: 'error.main',
+                              '&:hover': { color: 'error.dark', bgcolor: 'error.light' },
                             }}
                             aria-label={`Hapus ${user.username}`}
                           >
@@ -856,7 +870,7 @@ export default function UserManagementPage() {
       >
         <Alert
           onClose={() => setSuccessSnackbar(false)}
-          severity="success"
+          severity={snackbarSeverity}
           sx={{ width: '100%', borderRadius: 2, fontWeight: 500 }}
         >
           {snackbarMessage}

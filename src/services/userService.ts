@@ -37,10 +37,10 @@ export const userService = {
 
   /**
    * Delete a user by ID
-   * NOTE: Endpoint not ready yet — placeholder only.
+   * Requires super admin authorization.
    */
-  deleteUser: async (_id: string): Promise<Response<unknown>> => {
-    return apiClient<Response<unknown>>(`users/${_id}`, {
+  deleteUser: async (id: string): Promise<Response<unknown>> => {
+    return apiClient<Response<unknown>>(`users/${id}`, {
       method: 'DELETE',
     });
   },
