@@ -3,4 +3,6 @@ export const ROUTE = {
   DASHBOARD: '/dashboard',
   PRODUCT: '/product',
   CASHIER: '/cashier',
+  LOGIN: '/login',
+  REGISTER: '/register',
 };
