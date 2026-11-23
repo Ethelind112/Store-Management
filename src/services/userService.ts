@@ -1,15 +1,30 @@
 import { apiClient } from './api';
-import { Response } from '../types/response';
-import { User } from '../types/auth';
+import { PaginationResponse, Response } from '../types/response';
+import { GetUsersParams, User } from '../types/auth';
 
 export const userService = {
   /**
    * Fetch all users (super admin only)
    */
-  getUsers: async (): Promise<Response<User[]>> => {
-    return apiClient<Response<User[]>>('users', {
-      method: 'GET',
-    });
+  getUsers: async (params?: GetUsersParams): Promise<PaginationResponse<User[]>> => {
+    const searchParams = new URLSearchParams();
+    
+        if (params?.page !== undefined) {
+          searchParams.set('page', String(params.page));
+        }
+    
+        if (params?.per_page !== undefined) {
+          searchParams.set('per_page', String(params.per_page));
+        }
+    
+        if (params?.name !== undefined && params.name.trim() !== '') {
+          searchParams.set('name', String(params.name.trim()));
+        }
+
+        const query = searchParams.toString();
+        const endpoint = query ? `users?${query}` : 'users';
+    
+        return apiClient<PaginationResponse<User[]>>(endpoint);
   },
 
   /**

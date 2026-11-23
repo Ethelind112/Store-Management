@@ -44,9 +44,9 @@ import {
   Group as GroupIcon,
 } from '@mui/icons-material';
 import { useAuthStore } from '../../store/useAuthStore';
-import { userService } from '../../services/userService';
-import { User } from '../../types/auth';
 import { AuthFormErrors, RegisterFormValues } from '../../types/auth';
+import { useUsers } from './hooks';
+import { ErrorPage } from '../../components/Error';
 
 // ─── Role helpers ─────────────────────────────────────────────────────────────
 
@@ -376,66 +376,20 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onSuccess 
 // ─── User Management Page ─────────────────────────────────────────────────────
 
 export default function UserManagementPage() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
 
-  const [successSnackbar, setSuccessSnackbar] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
-  const [errorSnackbar, setErrorSnackbar] = useState(false);
-  const [errorMsg, setErrorMsg] = useState('');
+  const { data, isLoading, error, totalPages, totalData, refetch, isRefetching, search, setSearch, currentPage, setCurrentPage, handleDeleteUser } = useUsers();
 
-  const fetchUsers = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await userService.getUsers();
-      // API returns { data: User[] } — same pattern as other endpoints
-      const list = Array.isArray(response?.data)
-        ? response.data
-        : [];
-      setUsers(list);
-    } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Gagal memuat data pengguna.';
-      setErrorMsg(msg);
-      setErrorSnackbar(true);
-      setUsers([]);
-    } finally {
-      setIsLoading(false);
+  if (error) {
+      return <ErrorPage onRetry={refetch} isRetrying={isRefetching} />;
     }
-  }, []);
-
-  useEffect(() => {
-    fetchUsers();
-  }, [fetchUsers]);
-
-  const handleDeleteClick = (_id: string) => {
-    // TODO: implement when endpoint is ready
-    console.log('Delete user clicked, endpoint not ready yet. ID:', _id);
-  };
-
-  const handleAddSuccess = (username: string) => {
-    setSuccessMsg(`Pengguna "${username}" berhasil ditambahkan!`);
-    setSuccessSnackbar(true);
-    fetchUsers(); // refresh table
-  };
-
-  const filteredUsers = users.filter((u) => {
-    const q = search.toLowerCase();
-    return (
-      u.username.toLowerCase().includes(q) ||
-      u.id.toLowerCase().includes(q) ||
-      getRoleLabel(u.role).toLowerCase().includes(q)
-    );
-  });
-
+    
   return (
     <Container disableGutters sx={{ display: 'grid', gap: 4, py: 2.5, px: 5 }}>
-      {/* ── Top Header ── */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-            <AdminPanelSettingsIcon color="primary" sx={{ fontSize: 28 }} />
             <Typography variant="h5" sx={{ fontWeight: 'bold', lineHeight: 1 }}>
               Manajemen Pengguna
             </Typography>
@@ -450,8 +404,13 @@ export default function UserManagementPage() {
           <TextField
             size="small"
             placeholder="Cari pengguna..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setSearch(searchInput.trim());
+              }
+            }}
             sx={{
               width: 240,
               '& .MuiOutlinedInput-root': {
@@ -533,7 +492,7 @@ export default function UserManagementPage() {
                     <TableCell align="center"><Skeleton variant="circular" width={32} height={32} sx={{ mx: 'auto' }} /></TableCell>
                   </TableRow>
                 ))
-              ) : filteredUsers.length === 0 ? (
+              ) : data.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} align="center" sx={{ py: 8 }}>
                     <GroupIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
@@ -543,7 +502,7 @@ export default function UserManagementPage() {
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUsers.map((user, index) => (
+                data.map((user, index) => (
                   <TableRow
                     key={user.id}
                     sx={{
@@ -601,7 +560,7 @@ export default function UserManagementPage() {
                         <span>
                           <IconButton
                             size="small"
-                            onClick={() => handleDeleteClick(user.id)}
+                            onClick={() => handleDeleteUser(user.id)}
                             sx={{
                               color: 'text.disabled',
                               cursor: 'not-allowed',
@@ -622,7 +581,7 @@ export default function UserManagementPage() {
         </TableContainer>
 
         {/* Footer info */}
-        {!isLoading && filteredUsers.length > 0 && (
+        {!isLoading && data.length > 0 && (
           <Box
             sx={{
               px: 3,
@@ -634,7 +593,7 @@ export default function UserManagementPage() {
             }}
           >
             <Typography variant="caption" color="text.secondary">
-              Menampilkan <strong>{filteredUsers.length}</strong> dari <strong>{users.length}</strong> pengguna
+              Menampilkan <strong>{data.length}</strong> dari <strong>{totalData}</strong> pengguna
               {search && ` (filter: "${search}")`}
             </Typography>
           </Box>
@@ -645,31 +604,8 @@ export default function UserManagementPage() {
       <AddUserDialog
         open={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}
-        onSuccess={handleAddSuccess}
+        onSuccess={() => refetch}
       />
-
-      {/* ── Snackbars ── */}
-      <Snackbar
-        open={successSnackbar}
-        autoHideDuration={4000}
-        onClose={() => setSuccessSnackbar(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert onClose={() => setSuccessSnackbar(false)} severity="success" sx={{ width: '100%', borderRadius: 2 }}>
-          {successMsg}
-        </Alert>
-      </Snackbar>
-
-      <Snackbar
-        open={errorSnackbar}
-        autoHideDuration={5000}
-        onClose={() => setErrorSnackbar(false)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-      >
-        <Alert onClose={() => setErrorSnackbar(false)} severity="error" sx={{ width: '100%', borderRadius: 2 }}>
-          {errorMsg}
-        </Alert>
-      </Snackbar>
     </Container>
   );
 }

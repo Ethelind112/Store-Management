@@ -6,6 +6,12 @@ export interface User {
   role: UserRole;
 }
 
+export interface GetUsersParams {
+  page?: number;
+  per_page?: number;
+  name?: string;
+}
+
 export interface LoginRequest {
   username: string;
   password: string;
