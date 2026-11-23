@@ -125,10 +125,6 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onSuccess 
     onClose();
   };
 
-  const handleResetToForm = () => {
-    resetForm();
-  };
-
   const handleChange = (field: keyof RegisterFormValues) => (
     e: React.ChangeEvent<HTMLInputElement>
   ) => {
@@ -521,7 +517,7 @@ const AddUserDialog: React.FC<AddUserDialogProps> = ({ open, onClose, onSuccess 
               <Button
                 variant="outlined"
                 color="primary"
-                onClick={handleResetToForm}
+                onClick={resetForm}
                 startIcon={<PersonAddIcon />}
                 sx={{ borderRadius: 2, fontWeight: 600 }}
               >
