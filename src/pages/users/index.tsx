@@ -50,6 +50,7 @@ import { useAuthStore } from '../../store/useAuthStore';
 import { AuthFormErrors, RegisterFormValues } from '../../types/auth';
 import { useUsers, useCreateUser } from './hooks';
 import { ErrorPage } from '../../components/Error';
+import { ConfirmDialog } from '../../components/ConfirmDialog';
 
 // ─── Role Helpers ─────────────────────────────────────────────────────────────
 
@@ -548,6 +549,7 @@ export default function UserManagementPage() {
   const [successSnackbar, setSuccessSnackbar] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<'success' | 'error'>('success');
+  const [userToDelete, setUserToDelete] = useState<{ id: string; username: string } | null>(null);
 
   const {
     data,
@@ -569,6 +571,23 @@ export default function UserManagementPage() {
     setSnackbarMessage(`Pengguna "${username}" berhasil ditambahkan ke dalam sistem!`);
     setSnackbarSeverity('success');
     setSuccessSnackbar(true);
+  };
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return;
+
+    try {
+      await handleDeleteUser(userToDelete.id);
+      setSnackbarMessage(`Pengguna "${userToDelete.username}" berhasil dihapus.`);
+      setSnackbarSeverity('success');
+      setSuccessSnackbar(true);
+      setUserToDelete(null);
+    } catch (deleteError) {
+      setSnackbarMessage(deleteError instanceof Error ? deleteError.message : 'Gagal menghapus pengguna.');
+      setSnackbarSeverity('error');
+      setSuccessSnackbar(true);
+      setUserToDelete(null);
+    }
   };
 
   if (error) {
@@ -786,18 +805,7 @@ export default function UserManagementPage() {
                         <span>
                           <IconButton
                             size="small"
-                            onClick={async () => {
-                              try {
-                                await handleDeleteUser(user.id);
-                                setSnackbarMessage(`Pengguna "${user.username}" berhasil dihapus.`);
-                                setSnackbarSeverity('success');
-                                setSuccessSnackbar(true);
-                              } catch (deleteError) {
-                                setSnackbarMessage(deleteError instanceof Error ? deleteError.message : 'Gagal menghapus pengguna.');
-                                setSnackbarSeverity('error');
-                                setSuccessSnackbar(true);
-                              }
-                            }}
+                            onClick={() => setUserToDelete({ id: user.id, username: user.username })}
                             disabled={isDeletingUser}
                             sx={{
                               color: 'error.main',
@@ -858,6 +866,17 @@ export default function UserManagementPage() {
         open={addDialogOpen}
         onClose={() => setAddDialogOpen(false)}
         onSuccess={handleUserAdded}
+      />
+
+      <ConfirmDialog
+        open={userToDelete !== null}
+        title="Hapus pengguna?"
+        message={`Apakah Anda yakin ingin menghapus pengguna "${userToDelete?.username ?? ''}"? Tindakan ini tidak dapat dibatalkan.`}
+        confirmText="Hapus"
+        cancelText="Batal"
+        loading={isDeletingUser}
+        onConfirm={confirmDeleteUser}
+        onCancel={() => setUserToDelete(null)}
       />
 
       {/* ── Success Notification Snackbar ── */}
