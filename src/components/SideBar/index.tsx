@@ -17,7 +17,7 @@ import {
 import MenuIcon from '@mui/icons-material/Menu';
 import LogoutIcon from '@mui/icons-material/Logout';
 import LoginIcon from '@mui/icons-material/Login';
-import { MenuItems, AdminMenuItems, MenuWidth } from "./constant";
+import { MenuItems, SuperAdminMenuItems, MenuWidth } from "./constant";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuthStore } from "../../store/useAuthStore";
@@ -41,7 +41,7 @@ const SideBar = () => {
     navigate(ROUTE.LOGIN);
   };
 
-  const isAdminOrSuper = user?.role === 'ADMIN' || user?.role === 'SUPER_ADMIN';
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
 
   const roleLabel =
     user?.role === 'SUPER_ADMIN'
@@ -160,8 +160,8 @@ const SideBar = () => {
           ))}
         </List>
 
-        {/* Admin Only Menu Items */}
-        {isAdminOrSuper && (
+        {/* Super Admin Only Menu Items */}
+        {isSuperAdmin && (
           <>
             <Box sx={{ px: 2, pt: 2, pb: 0.5 }}>
               {open ? (
@@ -175,7 +175,7 @@ const SideBar = () => {
                     letterSpacing: 0.8,
                   }}
                 >
-                  Administrasi
+                  Super Admin
                 </Typography>
               ) : (
                 <Divider sx={{ my: 0.5 }} />
@@ -183,7 +183,7 @@ const SideBar = () => {
             </Box>
 
             <List disablePadding>
-              {AdminMenuItems.map((item) => (
+              {SuperAdminMenuItems.map((item) => (
                 <ListItem key={item.text} sx={{ px: 1, py: 0.25 }}>
                   <ListItemButton
                     selected={location.pathname === item.path}
