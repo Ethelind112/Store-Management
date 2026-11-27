@@ -1,9 +1,15 @@
-export type UserRole = 'admin' | 'super_admin' | 'cashier' | string;
+export type UserRole = 'ADMIN' | 'SUPER_ADMIN' | 'CASHIER' | string;
 
 export interface User {
   id: string;
   username: string;
   role: UserRole;
+}
+
+export interface GetUsersParams {
+  page?: number;
+  per_page?: number;
+  name?: string;
 }
 
 export interface LoginRequest {

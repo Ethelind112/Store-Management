@@ -5,4 +5,5 @@ export const ROUTE = {
   CASHIER: '/cashier',
   LOGIN: '/login',
   REGISTER: '/register',
+  USERS: '/users',
 };

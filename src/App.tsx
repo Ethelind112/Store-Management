@@ -9,6 +9,7 @@ import { HashRouter as Router, Routes, Route, Outlet, Navigate } from 'react-rou
 import SideBar from './components/SideBar';
 import ProductPage from './pages/product';
 import CashierPage from './pages/cashier';
+import UserManagementPage from './pages/users';
 import { AuthProvider } from './context/AuthContext';
 import { LoginPage, RegisterPage } from './pages/auth';
 import { ProtectedRoute } from './components/Auth/ProtectedRoute';
@@ -105,8 +106,18 @@ export default function App() {
               <Route
                 path={ROUTE.REGISTER}
                 element={
-                  <ProtectedRoute allowedRoles={['admin', 'super_admin']}>
+                  <ProtectedRoute allowedRoles={['admin', 'SUPER_ADMIN']}>
                     <RegisterPage />
+                  </ProtectedRoute>
+                }
+              />
+
+              {/* User Management: Strictly restricted to Super Admin only */}
+              <Route
+                path={ROUTE.USERS}
+                element={
+                  <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
+                    <UserManagementPage />
                   </ProtectedRoute>
                 }
               />
